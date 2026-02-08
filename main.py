@@ -1,4 +1,5 @@
 import sys
+from time import time
 import serial
 from PyQt5 import uic, QtWidgets, QtCore  # Import the uic module to load the UI file
 from PyQt5.QtWidgets import QApplication, QMainWindow
@@ -26,7 +27,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer.start(50)  # Read every 50 ms (20Hz)
 
         self.plot = pg.PlotWidget()  # Create a plot widget
-
         layout = self.widget.layout()  # Get the layout of the GraphWidget from the UI
         if layout is None:
             layout = QtWidgets.QVBoxLayout(self.widget)  # Create a new vertical layout if none exists
@@ -38,16 +38,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plot.setLabel('left', 'Altitude (m)')
         self.plot.setLabel('bottom', 'Time (s)')
         self.plot.setYRange(0, 10000)  # Set Y-axis range (adjust as needed)
-        self.plot_data = deque(maxlen=200)  # Store the last 200 data
         self.plot.showGrid(x=True, y=True)  # Show grid for better visibility
-        self.data = deque([0.0]*200, maxlen=200)  # Initialize data deque with zeros
 
         self.data = []  # List to store incoming data for plotting
         self.curve = self.plot.plot(self.data)  # Create a curve for plotting
 
         self.start_time = QtCore.QTime.currentTime()  # Record the start time for the X-axis
-        self.time_data = deque(maxlen=200)  # Store the last 200 time points for the X-axis
-        self.value_data = deque(maxlen=200)  # Store the last 200 values for the Y-axis
+        self.time_data = []  # List to store time data for plotting
+        self.value_data = []  # List to store value data for plotting
 
         self.timer = QtCore.QTimer() # Timer for updating the graph (sample numbers)
         self.timer.timeout.connect(self.update_graph)
@@ -63,13 +61,12 @@ class MainWindow(QtWidgets.QMainWindow):
         except ValueError:
             pass  # Ignore bad lines
 
-        self.data.append(value)  # Append new data point
-        self.curve.setData(self.data)  # Update the curve with new data
-
         elapsed_time = self.start_time.msecsTo(QtCore.QTime.currentTime()) / 1000.0  # Calculate elapsed time in seconds
         self.time_data.append(elapsed_time)  # Append elapsed time to the time data deque
         self.value_data.append(value)  # Append the new value to the value data deque
         self.curve.setData(list(self.time_data), list(self.value_data))  # Update the curve with new time and value data
+        time_range = time.time() - self.start_time  # Calculate the total elapsed time
+        self.plot.setXrange(0, time_range)  # Adjust X-axis range to show all data
 
     def read_serial_data(self):
         try:
