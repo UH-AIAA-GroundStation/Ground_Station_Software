@@ -1,5 +1,5 @@
 import sys
-from time import time
+import time
 import serial
 from PyQt5 import uic, QtWidgets, QtCore  # Import the uic module to load the UI file
 from PyQt5.QtWidgets import QApplication, QMainWindow
@@ -8,81 +8,92 @@ from collections import deque  # Import deque for efficient data storage
 
 PORT = "COM3"  # Replace with your serial port
 BAUD_RATE = 9600  # Replace with your baud rate (to be improved later)
+UI_FILE = "Ground_Station_App_Layout.ui"  # Path to your Qt Designer UI file
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self): # constructor
         super().__init__()  # Initialize the parent class (QMainWindow)
 
-        # Load Qt Designer UI file
-        uic.loadUi("Ground_Station_App_Layout.ui", self)  # Load the UI file into this class
+        self._load_ui()  # Load the UI from the .ui file
+        self._setup_serial()  # Set up the serial connection
+        self._setup_plot()  # Set up the plot for real-time data visualization
+        self._setup_timer()  # Set up a timer to read data from the serial port
 
-        self.setFixedSize(self.size())  # Set a fixed size for the window
+    def _load_ui(self):
+        # Load the UI from the .ui file
+        uic.loadUi(UI_FILE, self)
+        self.setFixedSize(self.size())  # Set the window to a fixed size based on the UI design
+        self.plot_holder = self.AltitudeGraph # Get the plot holder widget from the UI
 
-        # Open the serial port
-        self.ser = serial.Serial(PORT, BAUD_RATE, timeout=0.1)
+    def _setup_serial(self):
+        self.ser = serial.Serial(PORT, BAUD_RATE, timeout=1)  # Initialize the serial connection
 
-        # Timer to read serial data periodically
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.read_serial_data)
-        self.timer.start(50)  # Read every 50 ms (20Hz)
+    def _setup_plot(self):
+        self.plot = pg.PlotWidget()  # Create a PlotWidget for plotting
 
-        self.plot = pg.PlotWidget()  # Create a plot widget
-        layout = self.widget.layout()  # Get the layout of the GraphWidget from the UI
+        layout = self.plot_holder.layout()  # Get the layout of the plot holder
         if layout is None:
-            layout = QtWidgets.QVBoxLayout(self.widget)  # Create a new vertical layout if none exists
-            self.widget.setLayout(layout)  # Set the new layout to the GraphWidget
-        layout.addWidget(self.plot)  # Add the plot widget to the layout
+            layout = QtWidgets.QVBoxLayout(self.plot_holder)  # Create a new vertical box layout if none exists
+            layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for better fit
+            self.plot_holder.setLayout(layout)  # Set the layout for the plot holder
+        layout.addWidget(self.plot)  # Add the plot to the layout
 
-         # Configure the plot
-        self.plot.setTitle("Real-Time Altitude Plot")
-        self.plot.setLabel('left', 'Altitude (m)')
-        self.plot.setLabel('bottom', 'Time (s)')
-        self.plot.setYRange(0, 10000)  # Set Y-axis range (adjust as needed)
-        self.plot.showGrid(x=True, y=True)  # Show grid for better visibility
+        self.plot.setTitle("Real-Time Altitude Plot")  # Set the title of the plot
+        self.plot.setLabel('left', 'Altitude (m)')  # Set the label for the y-axis
+        self.plot.setLabel('bottom', 'Time (s)')  # Set the label for the x-axis
+        self.plot.showGrid(x=True, y=True)  # Show grid lines for better visibility
 
-        self.data = []  # List to store incoming data for plotting
-        self.curve = self.plot.plot(self.data)  # Create a curve for plotting
+        self.plot.setYRange(0, 10000)  # Set the initial y-axis range 
+        
+        # Data storage for plotting
+        self.time_data = []
+        self.altitude_data = []
 
-        self.start_time = QtCore.QTime.currentTime()  # Record the start time for the X-axis
-        self.time_data = []  # List to store time data for plotting
-        self.value_data = []  # List to store value data for plotting
+        # Create a curve for real-time data plotting
+        self.curve = self.plot.plot()
 
-        self.timer = QtCore.QTimer() # Timer for updating the graph (sample numbers)
-        self.timer.timeout.connect(self.update_graph)
-        self.timer.start(100)  # Update the graph every 100 ms (10Hz)
+        # Start time for x-axis
+        self.time_x = time.perf_counter()
 
-    def update_graph(self):
-        line = self.ser.readline().decode('utf-8').strip() # Read a line from the serial port, decode it, and strip whitespace
+    def _setup_timer(self):
+        self.update_timer = QtCore.QTimer(self)  # Create a QTimer for periodic updates
+        self.update_timer.timeout.connect(self._tick)  # Connect the timer to the data update method
+        self.update_timer.start(100)  # Set the timer to trigger every 100 ms
+
+    def _tick(self):
+        line = self.ser.readline().decode("utf-8").strip()  # Read a line from the serial port
         if not line:
-            return  # Skip if line is empty
-            
+            return  # If no data is read, exit the method
+        
         try:
-            value = float(line)
+            altitude = float(line)  # Convert the read line to a float (altitude value)
         except ValueError:
-            pass  # Ignore bad lines
+            return  # If conversion fails, exit the method
+        
+        # Update Altitude LCD display
+        if hasattr(self, "AltitudeLCD"): # Check if the LCD display exists
+            self.AltitudeLCD.display(altitude)  # Update the LCD display with the new altitude value
 
-        elapsed_time = self.start_time.msecsTo(QtCore.QTime.currentTime()) / 1000.0  # Calculate elapsed time in seconds
-        self.time_data.append(elapsed_time)  # Append elapsed time to the time data deque
-        self.value_data.append(value)  # Append the new value to the value data deque
-        self.curve.setData(list(self.time_data), list(self.value_data))  # Update the curve with new time and value data
-        time_range = time.time() - self.start_time  # Calculate the total elapsed time
-        self.plot.setXrange(0, time_range)  # Adjust X-axis range to show all data
+        # Calculate elapsed time since start
+        time_sec = time.perf_counter() - self.time_x  
 
-    def read_serial_data(self):
-        try:
-            line = self.ser.readline().decode('utf-8').strip()  # Read a line from the serial port
-            if line:
-                value = float(line)
-                self.lcdNumber.display(value)  # Update the LCD display with the new value
-        except ValueError:
-            pass  # Ignore bad lines
+        # Store and plot
+        self.time_data.append(time_sec)  # Append the elapsed time to the time data list
+        self.altitude_data.append(altitude)  # Append the altitude to the altitude data list
+        self.curve.setData(self.time_data, self.altitude_data)  # Update the plot with new data
 
+        # X-axis range adjustment
+        self.plot.setXRange(0, time_sec)
 
     def closeEvent(self, event):
-        if self.ser.is_open:
-            self.ser.close()  # Close the serial port when the application is closed
+        try:
+            if self.ser and self.ser.is_open:
+               self.ser.close()  # Close the serial connection when the window is closed
+        except Exception:
+            pass
         event.accept()  # Accept the close event
 
+        
 
 if __name__ == "__main__":
     # Create the application

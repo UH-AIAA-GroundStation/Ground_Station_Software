@@ -27,7 +27,7 @@
        <attribute name="title">
         <string>Tab 1</string>
        </attribute>
-       <widget class="QLCDNumber" name="lcdNumber">
+       <widget class="QLCDNumber" name="AltitudeLCD">
         <property name="geometry">
          <rect>
           <x>50</x>
@@ -534,7 +534,7 @@ font: 87 14pt &quot;Segoe UI Black&quot;;</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_2">
          <item row="0" column="0">
-          <widget class="QWidget" name="widget" native="true"/>
+          <widget class="QWidget" name="AltitudeGraph" native="true"/>
          </item>
         </layout>
        </widget>
@@ -543,7 +543,7 @@ font: 87 14pt &quot;Segoe UI Black&quot;;</string>
        <zorder>label</zorder>
        <zorder>lcdNumber_2</zorder>
        <zorder>label_2</zorder>
-       <zorder>lcdNumber</zorder>
+       <zorder>AltitudeLCD</zorder>
        <zorder>label</zorder>
        <zorder>lcdNumber_2</zorder>
        <zorder>label_2</zorder>
