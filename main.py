@@ -29,6 +29,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.lcd_map = {
             "ALT": self.AltitudeLCD,
             "TEMP": self.TemperatureLCD,
+            "LAT": self.LatitudeLCD,
+            "LON": self.LongitudeLCD,
         }  
 
         self._setup_serial()  # Set up the serial connection
@@ -84,10 +86,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.altitude_data = []
 
         # Create a curve for real-time data plotting
-        self.curve = self.AltPlot.plot()
-
-        # Start time for x-axis
-        self.time_x = time.perf_counter()
+        self.alt_curve = self.AltPlot.plot()
 
 
         # Temperature vs Time PLot---------------------------------------
@@ -105,9 +104,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.TempPlot.showGrid(x=True, y=True)  # Show grid lines for better visibility in the temperature plot
         self.TempPlot.setYRange(-20, 40)  # Set the initial y-axis range for the temperature plot
 
-        self.temp_time_data = []  # List to store time data for plotting
-        self.temp_data = []  # List to store temperature data for plotting
-        self.temp_curve = self.TempPlot.plot()  # Create a curve for real-time temperature data plotting
+        # Data storage for plotting
+        self.temp_time_data = []  
+        self.temp_data = []  
+
+        # Create a curve for real-time temperature data plotting
+        self.temp_curve = self.TempPlot.plot()  
 
 
         # GPS Graph---------------------------------------
@@ -121,18 +123,24 @@ class MainWindow(QtWidgets.QMainWindow):
             self.GPSGraph.setLayout(gps_layout)  # Set the layout for the GPS plot holder
 
         gps_layout.addWidget(self.GPSPlot)  # Add the GPS plot to the layout
-        self.GPSPlot.setTitle("Ground Track XY")  # Set the title of the GPS plot
+        self.GPSPlot.setTitle("Real-time tracker")  # Set the title of the GPS plot
         self.GPSPlot.setLabel('left', 'South(-) / North(+) (m)')  # Set the label for the y-axis of the GPS plot
         self.GPSPlot.setLabel('bottom', 'West(-) / East(+) (m)')  # Set the label for the x-axis of the GPS plot
         self.GPSPlot.showGrid(x=True, y=True)  # Show grid lines for better visibility in the GPS plot
         self.GPSPlot.setAspectLocked(True)  # Lock the aspect ratio for accurate representation of GPS data
-
-        self.gps_curve = self.GPSPlot.plot()  # Create a curve for real-time GPS data plotting
-        self.gps_dot = self.GPSPlot.plot([],[],symbol='o')
-
+        self.gps_dot = self.GPSPlot.plot([],[],symbol='o') # Create a dot to represent the current GPS position
         self.origin = None  # Store the reference GPS coordinates for converting to XY
-        self.x_data = []  # List to store x-coordinates for GPS plotting
-        self.y_data = []  # List to store y-coordinates for GPS plotting
+
+        # Data storage for GPS plotting
+        self.x_data = [] 
+        self.y_data = []  
+
+        # Create a curve for real-time GPS data plotting
+        self.gps_curve = self.GPSPlot.plot() 
+
+
+        # Start time for x-axis of all plots
+        self.time_x = time.perf_counter()
 
 
     def _setup_timer(self):
@@ -153,27 +161,40 @@ class MainWindow(QtWidgets.QMainWindow):
             if key in data:
                 lcd.display(f"{float(data[key]):.2f}")  # Update LCD with values
 
+        if "TIMEMS" in data:
+            time_ms = float(data["TIMEMS"]) / 1000.0  # Convert milliseconds to seconds
+        else:
+            time_ms = time.perf_counter() - self.time_x  # Use elapsed time since start if TIMEMS is not available
+
         if "ALT" in data:
             # Get the altitude value
             altitude = data["ALT"]  
-            # Calculate elapsed time since start
-            alt_time_sec = time.perf_counter() - self.time_x  
 
             # Store and plot
-            self.alt_time_data.append(alt_time_sec)  # Append the elapsed time to the time data list
-            self.altitude_data.append(altitude)  # Append the altitude to the altitude data list
-            self.curve.setData(self.alt_time_data, self.altitude_data)  # Update the plot with new data
-
-            # X-axis range adjustment
-            self.AltPlot.setXRange(0, alt_time_sec)
+            if "TIMEMS" not in data:
+                # Calculate elapsed time since start
+                alt_time_sec = time.perf_counter() - self.time_x  
+                self.alt_time_data.append(alt_time_sec)  # Append the elapsed time to the time data list
+                self.altitude_data.append(altitude)  # Append the altitude to the altitude data list
+                self.alt_curve.setData(self.alt_time_data, self.altitude_data)  # Update the plot with new data
+            else:
+                self.alt_time_data.append(time_ms)  # Append the TIMEMS time to the time data list
+                self.altitude_data.append(altitude)  # Append the altitude to the altitude data list
+                self.alt_curve.setData(self.alt_time_data, self.altitude_data)  # Update the plot with new data
 
         if "TEMP" in data:
             bmp_temp = float(data["TEMP"])
-            temp_time_sec = time.perf_counter() - self.time_x  
-            self.temp_time_data.append(temp_time_sec)  # Append the elapsed time to the time data list
-            self.temp_data.append(bmp_temp)  # Append the temperature to the temperature data list
-            self.temp_curve.setData(self.temp_time_data, self.temp_data)  # Update the temperature plot with new data
-            self.TempPlot.setXRange(0, temp_time_sec)  # Adjust the x-axis range for the temperature plot
+
+            # Store and plot
+            if "TIMEMS" not in data:
+                temp_time_sec = time.perf_counter() - self.time_x  
+                self.temp_time_data.append(temp_time_sec)  # Append the elapsed time to the time data list
+                self.temp_data.append(bmp_temp)  # Append the temperature to the temperature data list
+                self.temp_curve.setData(self.temp_time_data, self.temp_data)  # Update the temperature plot with new data
+            else:
+                self.temp_time_data.append(time_ms)  # Append the TIMEMS time to the time data list
+                self.temp_data.append(bmp_temp)  # Append the temperature to the temperature data list
+                self.temp_curve.setData(self.temp_time_data, self.temp_data)  # Update the temperature plot with new data
 
         if "LAT" in data and "LON" in data:
             lat = float(data["LAT"])

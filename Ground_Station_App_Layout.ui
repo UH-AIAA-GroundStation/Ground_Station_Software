@@ -108,7 +108,7 @@ font: 87 14pt &quot;Segoe UI Black&quot;;</string>
          <set>Qt::AlignCenter</set>
         </property>
        </widget>
-       <widget class="QLCDNumber" name="lcdNumber_3">
+       <widget class="QLCDNumber" name="LatitudeLCD">
         <property name="geometry">
          <rect>
           <x>1070</x>
@@ -141,7 +141,7 @@ font: 87 14pt &quot;Segoe UI Black&quot;;</string>
          <set>Qt::AlignCenter</set>
         </property>
        </widget>
-       <widget class="QLCDNumber" name="lcdNumber_4">
+       <widget class="QLCDNumber" name="LongitudeLCD">
         <property name="geometry">
          <rect>
           <x>1520</x>
@@ -154,7 +154,7 @@ font: 87 14pt &quot;Segoe UI Black&quot;;</string>
          <number>7</number>
         </property>
        </widget>
-       <widget class="QLCDNumber" name="lcdNumber_5">
+       <widget class="QLCDNumber" name="SattelitesLCD">
         <property name="geometry">
          <rect>
           <x>1970</x>
@@ -389,30 +389,6 @@ font: 87 14pt &quot;Segoe UI Black&quot;;</string>
          </item>
         </layout>
        </widget>
-       <zorder>label</zorder>
-       <zorder>lcdNumber</zorder>
-       <zorder>label</zorder>
-       <zorder>lcdNumber_2</zorder>
-       <zorder>label_2</zorder>
-       <zorder>AltitudeLCD</zorder>
-       <zorder>label</zorder>
-       <zorder>TemperatureLCD</zorder>
-       <zorder>label_2</zorder>
-       <zorder>lcdNumber_3</zorder>
-       <zorder>label_3</zorder>
-       <zorder>lcdNumber_4</zorder>
-       <zorder>lcdNumber_5</zorder>
-       <zorder>lcdNumber_11</zorder>
-       <zorder>label_7</zorder>
-       <zorder>label_8</zorder>
-       <zorder>label_9</zorder>
-       <zorder>label_10</zorder>
-       <zorder>label_11</zorder>
-       <zorder>label_14</zorder>
-       <zorder>label_12</zorder>
-       <zorder>gridLayoutWidget</zorder>
-       <zorder>gridLayoutWidget_2</zorder>
-       <zorder>gridLayoutWidget_3</zorder>
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
