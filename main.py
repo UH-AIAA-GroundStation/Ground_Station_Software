@@ -1,8 +1,13 @@
 from fastapi import FastAPI
+from sensor_reader import Sensor_reader
 
 app = FastAPI()
 
 
-@app.get("/")
+@app.get("/read_data")
 async def root():
-    return {"message": "Hello World"}
+    return {"altitude": {},
+            "temperature": {},
+            "gps":{},
+            "lcd":{}
+            }
