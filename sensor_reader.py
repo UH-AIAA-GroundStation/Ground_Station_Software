@@ -18,6 +18,7 @@ class Sensor_reader:
         self.altitude_data = []
         self.alt_time_data = []
         self.temp_data = []
+        self.temp_time_data = []
         self.x_data = []
         self.y_data = []
         
@@ -26,9 +27,8 @@ class Sensor_reader:
 
         
         self._setup_serial()  # Set up the serial connection
-        self._setup_timer()  # Set up a timer to read data from the serial port
 
-    def lat_lon_to_xy(lat, lon, lat_ref, lon_ref):
+    def lat_lon_to_xy(self, lat, lon, lat_ref, lon_ref):
         dlat = math.radians(lat - lat_ref)
         dlon = math.radians(lon - lon_ref)
         x = EARTH_RADIUS * dlon * math.cos(math.radians(lat_ref)) # East
@@ -56,9 +56,6 @@ class Sensor_reader:
                     pass  # If both conversions fail, ignore the value
         return output
     
-    def _setup_timer(self):
-        self.update_timer.timeout.connect(self._tick)  # Connect the timer to the data update method
-        self.update_timer.start(100)  # Set the timer to trigger every 100 ms
 
     def _tick(self):
         line = self.ser.readline().decode("utf-8").strip()  # Read a line from the serial port
