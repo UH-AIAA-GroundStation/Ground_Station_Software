@@ -1,14 +1,21 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from sensor_reader import Sensor_reader
-import threading
 import time
 
-app = FastAPI()
 
 DataStream = Sensor_reader()
+# Use a lifespan to manage the connection
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Open the port
+    #DataStream._setup_serial() 
+    yield
+    # Shutdown: Close the port
+    DataStream.ser.close()
 
-DataStream._setup_serial()
+app = FastAPI(lifespan=lifespan)
 
 
 # Background task to keep the data flowing
@@ -17,7 +24,6 @@ def background_reader():
         DataStream._tick()
         time.sleep(0.01) # Small sleep to save CPU
 
-threading.Thread(target=background_reader, daemon=True).start()
 # Allow your Web App (Frontend) to access this API
 app.add_middleware(
     CORSMiddleware,
@@ -28,6 +34,7 @@ app.add_middleware(
 
 @app.get("/read_data")
 async def root():
+    DataStream._tick()
     return {
         "altitude": {
             "values": DataStream.altitude_data[-20:], # Send last 20 points

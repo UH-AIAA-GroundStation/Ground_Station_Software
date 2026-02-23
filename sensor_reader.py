@@ -3,8 +3,9 @@ import time
 import serial
 import math
 
+
 EARTH_RADIUS = 6371000  # meters, used for distance calculations for GPS Graph
-PORT = "COM3"  # Replace with your serial port
+PORT = "COM7"  # Replace with your serial port
 BAUD_RATE = 9600  # Replace with your baud rate (to be improved later)
 
 
@@ -13,6 +14,8 @@ class Sensor_reader:
 
 
     def __init__(self):
+
+        self.ser = serial.Serial(PORT, BAUD_RATE, timeout=1)
 
         # Data storage
         self.altitude_data = []
@@ -25,8 +28,7 @@ class Sensor_reader:
         self.origin = None
         self.time_x = time.perf_counter()
 
-        
-        self._setup_serial()  # Set up the serial connection
+    
 
     def lat_lon_to_xy(self, lat, lon, lat_ref, lon_ref):
         dlat = math.radians(lat - lat_ref)
@@ -36,8 +38,8 @@ class Sensor_reader:
         return x, y
     
 
-    def _setup_serial(self):
-        self.ser = serial.Serial(PORT, BAUD_RATE, timeout=1)  # Initialize the serial connection
+    #def _setup_serial(self):
+     #   self.ser = serial.Serial(PORT, BAUD_RATE, timeout=1)  # Initialize the serial connection
 
     def parse_serial_data(self,line: str) -> dict:
         output = {}
@@ -58,6 +60,10 @@ class Sensor_reader:
     
 
     def _tick(self):
+
+        if self.ser is None or not self.ser.is_open:
+             return
+
         line = self.ser.readline().decode("utf-8").strip()  # Read a line from the serial port
         if not line:
             return  # If no data is read, exit the method
