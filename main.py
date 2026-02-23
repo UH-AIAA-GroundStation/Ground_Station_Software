@@ -40,7 +40,10 @@ async def root():
             "values": DataStream.altitude_data[-20:], # Send last 20 points
             "timestamps": DataStream.alt_time_data[-20:]
         },
-        "temperature": DataStream.temp_data[-1:] if DataStream.temp_data else 0,
+        "temperature":{
+            "values": DataStream.temp_data[-1:] if DataStream.temp_data else 0,
+            "timestamps": DataStream.temp_time_data[-20:]
+        }, 
         "gps": {
             "x": DataStream.x_data[-20:],
             "y": DataStream.y_data[-20:]
