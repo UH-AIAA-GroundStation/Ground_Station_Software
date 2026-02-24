@@ -1,9 +1,21 @@
 body{
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: space-evenly;
 }
 
+#startbtn{
+    width:15%;
+    margin: 10px auto;
+    height: 40px;
+}
+h1{
+    text-align: center;
+
+}
+.on{
+    background-color: darksalmon;
+}
 .sensor-header{
     margin-top: 3px;
     margin-bottom: 3px;
@@ -13,7 +25,8 @@ body{
 
 .data-set{
     border: 2px solid black;
-    width: 30%;
+    margin: 20px auto;
+    width: 70%;
     height: 325px;
 
 }
