@@ -75,6 +75,17 @@ tempSvg.append("g")
     .attr("transform", `translate(${marginLeft}, 0)`)
     .call(d3.axisLeft(tempY));
 
+// 5. Create temperature path
+const tempPath = tempSvg.append("path")
+    .attr("fill", "none")
+    .attr("stroke", "black")
+    .attr("stroke-width", 1);
+
+// 6. Initiate line
+const tempLine = d3.line()
+    .x(d => tempX(d.time))
+    .y(d => tempY(d.val));
+
 //----------------------GPS--------------------------
 
 // set up x and y scales
@@ -102,6 +113,16 @@ gpsSvg.append("g")
     .attr("transform", `translate(${marginLeft}, 0)`)
     .call(d3.axisLeft(gpsY));
 
+// 5. Create gps path
+const gpsPath = gpsSvg.append("path")
+    .attr("fill", "none")
+    .attr("stroke", "black")
+    .attr("stroke-width", 1);
+
+// 6. Initiate line
+const gpsLine = d3.line()
+    .x(d => gpsX(d.gX))
+    .y(d => gpsY(d.gY));
 
 
 const startbtn = document.getElementById("startbtn");
@@ -144,9 +165,23 @@ async function fetchData() {
         val: data.altitude.values[i]
     }));
 
+    const tempData = data.temperature.timestamps.map((t, i) => ({
+        time: t,
+        val: data.temperature.values[i]
+    }));
+
+    const gpsData = data.gps.x.map((a, b) => ({
+        gX: a,
+        gY: data.gps.y[b]
+    }));
+
     // update paths
     altPath.datum(altData).attr("d", altLine);
-    console.log(altData)
+
+    tempPath.datum(tempData).attr("d", tempLine);
+    
+    gpsPath.datum(gpsData).attr("d", gpsLine);
+    //console.log(altData)
     
   } catch (error) {
     // Handle any errors that occurred during the fetch operation
