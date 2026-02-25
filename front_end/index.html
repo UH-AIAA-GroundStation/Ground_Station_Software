@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teensy Sensor Data</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        rect{
+            pointer-events: all;
+            fill-opacity: 0;
+            stroke-opacity: 0;
+            z-index: 10;
+        }
+
+        .tooltip{
+            position: absolute;
+            padding: 10px;
+            background-color: darkgray;
+            color: black;
+            border: 1px solid black;
+            border-radius: 10px;
+            display: none;
+            opacity: .75;
+        }
+    </style>
 </head>
 <body>
     <h1>Teensy Data</h1>

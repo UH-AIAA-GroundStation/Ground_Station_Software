@@ -8,7 +8,9 @@ const marginRight = 20;
 const marginBottom = 30;
 const marginLeft = 40;
 
-
+let altData;
+let tempData;
+let gpsData;
 
 //----------------------Altitide-------------------------
 // set up x and y scales
@@ -51,6 +53,68 @@ const altLine = d3.line()
     .y(d => altY(d.val));
 
 
+
+    //create tooltip
+const altTooltip = d3.select("body")
+    .append("div")
+    .attr("class","tooltip")
+
+//create circle
+const altCircle = altSvg.append("circle")
+    .attr("r",0)
+    .attr("fill","black")
+    .style("stroke","white")
+    .attr("opacity",.70)
+    .style("pointer-events","none");
+
+//listening rectangle
+  const altListeningRect = altSvg.append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+  // create the mouse move function
+
+altListeningRect.on("mousemove", function (event) {
+    if (!altData || altData.length === 0) return;
+
+    const [xCoord] = d3.pointer(event);
+    const bisectDate = d3.bisector(d => d.time).left;
+    const x0 = altX.invert(xCoord);
+    
+    // Find the closest data point
+    const i = bisectDate(altData, x0, 1);
+    const d0 = altData[i - 1];
+    const d1 = altData[i];
+    
+    // Safety check for edges of the array
+    if (!d1) return; 
+    const d = x0 - d0.time > d1.time - x0 ? d1 : d0;
+
+    const xPos = altX(d.time);
+    const yPos = altY(d.val);
+
+    // Update the circle position
+    altCircle
+        .attr("cx", xPos)
+        .attr("cy", yPos)
+        .attr("r", 5);
+
+    // Update tooltip content and position
+    altTooltip
+        .style("display", "block")
+        // Use event.pageX/Y for absolute positioning relative to the screen
+        .style("left", `${event.pageX + 15}px`)
+        .style("top", `${event.pageY - 15}px`)
+        .html(`
+            <strong>Time:</strong> ${d.time.toFixed(2)}s<br>
+            <strong>Altitude:</strong> ${d.val.toFixed(2)}m
+        `);
+});
+
+altListeningRect.on("mouseleave", function () {
+    altCircle.attr("r", 0);
+    altTooltip.style("display", "none");
+});
 //--------------------Temperature---------------------------   
 // set up x and y scales
 const tempX = d3.scaleLinear()
@@ -90,6 +154,67 @@ const tempLine = d3.line()
     .x(d => tempX(d.time))
     .y(d => tempY(d.val));
 
+    //create tooltip
+const tempTooltip = d3.select("body")
+    .append("div")
+    .attr("class","tooltip")
+
+//create circle
+const tempCircle = tempSvg.append("circle")
+    .attr("r",0)
+    .attr("fill","black")
+    .style("stroke","white")
+    .attr("opacity",.70)
+    .style("pointer-events","none");
+
+//listening rectangle
+  const tempListeningRect = tempSvg.append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+  // create the mouse move function
+
+tempListeningRect.on("mousemove", function (event) {
+    if (!tempData || tempData.length === 0) return;
+
+    const [xCoord] = d3.pointer(event);
+    const bisectDate = d3.bisector(d => d.time).left;
+    const x0 = tempX.invert(xCoord);
+    
+    // Find the closest data point
+    const i = bisectDate(tempData, x0, 1);
+    const d0 = tempData[i - 1];
+    const d1 = tempData[i];
+    
+    // Safety check for edges of the array
+    if (!d1) return; 
+    const d = x0 - d0.time > d1.time - x0 ? d1 : d0;
+
+    const xPos = tempX(d.time);
+    const yPos = tempY(d.val);
+
+    // Update the circle position
+    tempCircle
+        .attr("cx", xPos)
+        .attr("cy", yPos)
+        .attr("r", 5);
+
+    // Update tooltip content and position
+    tempTooltip
+        .style("display", "block")
+        // Use event.pageX/Y for absolute positioning relative to the screen
+        .style("left", `${event.pageX + 15}px`)
+        .style("top", `${event.pageY - 15}px`)
+        .html(`
+            <strong>Time:</strong> ${d.time.toFixed(2)}s<br>
+            <strong>Temperature:</strong> ${d.val.toFixed(2)}m
+        `);
+});
+
+tempListeningRect.on("mouseleave", function () {
+    tempCircle.attr("r", 0);
+    tempTooltip.style("display", "none");
+});
 //----------------------GPS--------------------------
 
 // set up x and y scales
@@ -131,6 +256,68 @@ const gpsLine = d3.line()
     .y(d => gpsY(d.gY));
 
 
+    //create tooltip
+const gpsTooltip = d3.select("body")
+    .append("div")
+    .attr("class","tooltip")
+
+//create circle
+const gpsCircle = gpsSvg.append("circle")
+    .attr("r",0)
+    .attr("fill","black")
+    .style("stroke","white")
+    .attr("opacity",.70)
+    .style("pointer-events","none");
+
+//listening rectangle
+  const gpsListeningRect = gpsSvg.append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+  // create the mouse move function
+
+gpsListeningRect.on("mousemove", function (event) {
+    if (!gpsData || gpsData.length === 0) return;
+
+    const [xCoord] = d3.pointer(event);
+    const bisectDate = d3.bisector(d => d.gX).left;
+    const x0 = gpsX.invert(xCoord);
+    
+    // Find the closest data point
+    const i = bisectDate(gpsData, x0, 1);
+    const d0 = gpsData[i - 1];
+    const d1 = gpsData[i];
+    
+    // Safety check for edges of the array
+    if (!d1) return; 
+    const d = x0 - d0.gX > d1.gX - x0 ? d1 : d0;
+
+    const xPos = gpsX(d.gX);
+    const yPos = gpsY(d.gY);
+
+    // Update the circle position
+    gpsCircle
+        .attr("cx", xPos)
+        .attr("cy", yPos)
+        .attr("r", 5);
+
+    // Update tooltip content and position
+    gpsTooltip
+        .style("display", "block")
+        // Use event.pageX/Y for absolute positioning relative to the screen
+        .style("left", `${event.pageX + 15}px`)
+        .style("top", `${event.pageY - 15}px`)
+        .html(`
+            <strong>X-Pos:</strong> ${d.gX.toFixed(2)}s<br>
+            <strong>Y-Pos:</strong> ${d.gY.toFixed(2)}m
+        `);
+});
+
+gpsListeningRect.on("mouseleave", function () {
+    gpsCircle.attr("r", 0);
+    gpsTooltip.style("display", "none");
+});
+
 const startbtn = document.getElementById("startbtn");
 
 let record = false;
@@ -166,7 +353,7 @@ async function fetchData() {
     const data = await response.json();
 
     //transform data
-    const altData = data.altitude.timestamps.map((t, i) => ({
+    altData = data.altitude.timestamps.map((t, i) => ({
         time: t,
         val: data.altitude.values[i]
     }));
@@ -179,7 +366,7 @@ async function fetchData() {
         altPath.datum(altData).attr("d", altLine);
     }
 
-    const tempData = data.temperature.timestamps.map((t, i) => ({
+    tempData = data.temperature.timestamps.map((t, i) => ({
         time: t,
         val: data.temperature.values[i]
     }));
@@ -192,7 +379,7 @@ async function fetchData() {
         tempPath.datum(tempData).attr("d", tempLine);
     }
 
-    const gpsData = data.gps.x.map((a, b) => ({
+    gpsData = data.gps.x.map((a, b) => ({
         gX: a,
         gY: data.gps.y[b]
     }));
