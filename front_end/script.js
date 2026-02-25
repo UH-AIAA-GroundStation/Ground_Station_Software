@@ -28,12 +28,14 @@ const altSvg = d3.select("#altcontainer")
     .attr("height", height);
 
 // 3. Add X-axis
-altSvg.append("g")
+const altXAxis = altSvg.append("g")
+    .attr("class","x-axis")
     .attr("transform", `translate(0, ${height - marginBottom})`)
     .call(d3.axisBottom(altX));
 
 // 4. Add Y-axis (changed to axisLeft)
-altSvg.append("g")
+const altYAxis = altSvg.append("g")
+    .attr("class","y-axis")
     .attr("transform", `translate(${marginLeft}, 0)`)
     .call(d3.axisLeft(altY));
 
@@ -66,12 +68,14 @@ const tempSvg = d3.select("#tempcontainer")
     .attr("height", height);
 
 // 3. Add X-axis
-tempSvg.append("g")
+const tempXAxis = tempSvg.append("g")
+    .attr("class","x-axis")
     .attr("transform", `translate(0, ${height - marginBottom})`)
     .call(d3.axisBottom(tempX));
 
 // 4. Add Y-axis (changed to axisLeft)
-tempSvg.append("g")
+const tempYAxis = tempSvg.append("g")
+    .attr("class","y-axis")
     .attr("transform", `translate(${marginLeft}, 0)`)
     .call(d3.axisLeft(tempY));
 
@@ -104,12 +108,14 @@ const gpsSvg = d3.select("#gpscontainer")
     .attr("height", height);
 
 // 3. Add X-axis
-gpsSvg.append("g")
+const gpsXAxis = gpsSvg.append("g")
+    .attr("class","x-axis")
     .attr("transform", `translate(0, ${height - marginBottom})`)
     .call(d3.axisBottom(gpsX));
 
 // 4. Add Y-axis (changed to axisLeft)
-gpsSvg.append("g")
+const gpsYAxis = gpsSvg.append("g")
+    .attr("class","y-axis")
     .attr("transform", `translate(${marginLeft}, 0)`)
     .call(d3.axisLeft(gpsY));
 
@@ -164,16 +170,43 @@ async function fetchData() {
         time: t,
         val: data.altitude.values[i]
     }));
+    if (altData.length > 0) {
+        altX.domain([0, d3.max(altData, d => d.time) + 10]);
+        altY.domain([0, d3.max(altData, d => d.val) + 10]);
+        
+        altXAxis.call(d3.axisBottom(altX));
+        altYAxis.call(d3.axisLeft(altY));
+        altPath.datum(altData).attr("d", altLine);
+    }
 
     const tempData = data.temperature.timestamps.map((t, i) => ({
         time: t,
         val: data.temperature.values[i]
     }));
+    if (tempData.length > 0) {
+        tempX.domain([0, d3.max(tempData, d => d.time) + 10]);
+        tempY.domain([0, d3.max(tempData, d => d.val) + 10]);
+
+        tempXAxis.call(d3.axisBottom(tempX));
+        tempYAxis.call(d3.axisLeft(tempY));
+        tempPath.datum(tempData).attr("d", tempLine);
+    }
 
     const gpsData = data.gps.x.map((a, b) => ({
         gX: a,
         gY: data.gps.y[b]
     }));
+    if (gpsData.length > 0) {
+        const xExtent = d3.extent(gpsData, d => d.gX);
+        const yExtent = d3.extent(gpsData, d => d.gY);
+
+        gpsX.domain([xExtent[0] - 0.5, xExtent[1] + 0.5]);
+        gpsY.domain([yExtent[0] - 0.5, yExtent[1] + 0.5]);
+
+        gpsXAxis.call(d3.axisBottom(gpsX));
+        gpsYAxis.call(d3.axisLeft(gpsY));
+        gpsPath.datum(gpsData).attr("d", gpsLine);
+    }
 
     // update paths
     altPath.datum(altData).attr("d", altLine);
@@ -187,7 +220,8 @@ async function fetchData() {
     // Handle any errors that occurred during the fetch operation
     console.error("Could not fetch data:", error);
   }
+
 }
 
-setInterval(fetchData, 1000);
+setInterval(fetchData,1000);
 
