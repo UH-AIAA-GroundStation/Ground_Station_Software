@@ -113,3 +113,21 @@ class Sensor_reader:
         except Exception:
             pass
         event.accept()  # Accept the close event
+
+    def reset_data(self):
+        """Resets all stored sensor data and restarts the timer/GPS origin."""
+        # Clear the data lists
+        self.altitude_data = []
+        self.alt_time_data = []
+        self.temp_data = []
+        self.temp_time_data = []
+        self.x_data = []
+        self.y_data = []
+        
+        # Reset the GPS origin so the next coordinate becomes (0,0)
+        self.origin = None
+        
+        # Reset the start time so graphs start back at T=0
+        self.time_x = time.perf_counter()
+        
+        print("Data has been reset.")

@@ -4,7 +4,7 @@ body{
     justify-content: space-evenly;
 }
 
-#startbtn{
+#startbtn,#resetbtn{
     width:15%;
     height: 40px;
     margin: 10px auto;
@@ -21,7 +21,10 @@ h1{
     margin-bottom: 3px;
     text-align: center;
 }
-
+.btns{
+    display: flex;
+    flex-direction: row;
+}
 
 .data-set{
     border: 2px solid black;

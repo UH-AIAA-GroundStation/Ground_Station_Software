@@ -50,4 +50,10 @@ async def root():
         }
     }
 
+@app.post("/reset")
+async def reset_sensor_data():
+    """Trigger a reset of all sensor arrays and timers."""
+    DataStream.reset_data()
+    return {"message": "All data arrays have been cleared", "status": "success"}
+
 

@@ -410,5 +410,32 @@ async function fetchData() {
 
 }
 
+async function resetSensorData() {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/reset', {
+            method: 'POST', // Specify the method
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            // If your reset needed data, you'd put it in 'body', 
+            // but for a simple reset, we leave it out.
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Success:', data.message);
+            alert('Sensor data has been cleared!');
+        } else {
+            console.error('Server error:', response.status);
+        }
+    } catch (error) {
+        console.error('Network error:', error);
+    }
+}
+
+const resetBtn = document.getElementById("resetbtn");
+resetBtn.addEventListener("click", resetSensorData);
+
+
 setInterval(fetchData,1000);
 
