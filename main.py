@@ -37,6 +37,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._setup_serial()  # Set up the serial connection
         self._setup_plot()  # Set up the plot for real-time data visualization
         self._setup_timer()  # Set up a timer to read data from the serial port
+        self.setWindowIcon(QtWidgets.QIcon('cropped-aiaaweblogo.png'))  # Set the window icon to the AIAA logo
 
     def _load_ui(self):
         # Load the UI from the .ui file
@@ -88,6 +89,52 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Create a curve for real-time data plotting
         self.alt_curve = self.AltPlot.plot()
+
+
+        # ADXL Acceleratation Magnitude vs Time Plot--------------------------------------
+        self.ADXLAccPlot = pg.PlotWidget()  # Create a PlotWidget for plotting
+        acc_layout = self.ADXLAccGraph.layout()  # Get the layout of the acceleration magnitude plot holder
+        if acc_layout is None:  
+            acc_layout = QtWidgets.QVBoxLayout(self.ADXLAccGraph)  # Create a new vertical box layout if none exists
+            acc_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for better fit
+            self.ADXLAccGraph.setLayout(acc_layout)  # Set the layout for the acceleration magnitude plot holder
+        acc_layout.addWidget(self.ADXLAccPlot)  # Add the acceleration magnitude plot to the layout
+
+        self.ADXLAccPlot.setTitle("ADXL Acceleration Magnitude Plot")  # Set the title of the acceleration magnitude plot
+        self.ADXLAccPlot.setLabel('left', 'Acceleration (m/s²)')  # Set the label for the y-axis of the acceleration magnitude plot
+        self.ADXLAccPlot.setLabel('bottom', 'Time (s)')  # Set the label for the x-axis of the acceleration magnitude plot
+        self.ADXLAccPlot.showGrid(x=True, y=True)  # Show grid lines for better visibility in the acceleration magnitude plot
+        self.ADXLAccPlot.setYRange(0, 10000)  # Set the initial y-axis range for the acceleration magnitude plot
+
+        # Data storage for acceleration magnitude plotting
+        self.acc_time_data = []
+        self.acc_magnitude_data = []
+
+        # Create a curve for real-time acceleration magnitude data plotting
+        self.acc_curve = self.ADXLAccPlot.plot()
+
+
+        # LSM Acceleratation Magnitude vs Time Plot--------------------------------------
+        self.LSMAccPlot = pg.PlotWidget()  # Create a PlotWidget for plotting
+        acc_layout = self.LSMAccGraph.layout()  # Get the layout of the acceleration magnitude plot holder
+        if acc_layout is None:  
+            acc_layout = QtWidgets.QVBoxLayout(self.LSMAccGraph)  # Create a new vertical box layout if none exists
+            acc_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for better fit
+            self.LSMAccGraph.setLayout(acc_layout)  # Set the layout for the acceleration magnitude plot holder
+        acc_layout.addWidget(self.LSMAccPlot)  # Add the acceleration magnitude plot to the layout
+
+        self.LSMAccPlot.setTitle("LSM Acceleration Magnitude Plot")  # Set the title of the acceleration magnitude plot
+        self.LSMAccPlot.setLabel('left', 'Acceleration (m/s²)')  # Set the label for the y-axis of the acceleration magnitude plot
+        self.LSMAccPlot.setLabel('bottom', 'Time (s)')  # Set the label for the x-axis of the acceleration magnitude plot
+        self.LSMAccPlot.showGrid(x=True, y=True)  # Show grid lines for better visibility in the acceleration magnitude plot
+        self.LSMAccPlot.setYRange(0, 10000)  # Set the initial y-axis range for the acceleration magnitude plot
+
+        # Data storage for acceleration magnitude plotting
+        self.acc_time_data = []
+        self.acc_magnitude_data = []
+
+        # Create a curve for real-time acceleration magnitude data plotting
+        self.acc_curve = self.LSMAccPlot.plot()
 
 
         # Temperature vs Time PLot---------------------------------------

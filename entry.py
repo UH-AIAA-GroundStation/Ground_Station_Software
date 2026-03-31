@@ -9,6 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QIcon
 from main import MainWindow
 
 
@@ -23,6 +24,7 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("First Dialog")
         Dialog.setFixedSize(689, 591)
+        Dialog.setWindowIcon(QIcon('cropped-aiaaweblogo.png'))  # Set the window icon to the AIAA logo
         self.groupBox = QtWidgets.QGroupBox(Dialog)
         self.groupBox.setGeometry(QtCore.QRect(20, 30, 651, 551))
         self.groupBox.setStyleSheet("font: 75 12pt \"MS Shell Dlg 2\";\n"
@@ -57,7 +59,7 @@ class Ui_Dialog(object):
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Ground Station App", "Ground Station App"))
+        Dialog.setWindowTitle(_translate("Ground Station App 2025-2026", "Ground Station App 2025-2026"))
         self.groupBox.setTitle(_translate("Dialog", "AIAA Ground Station App"))
         self.textEdit_2.setHtml(_translate("Dialog", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
