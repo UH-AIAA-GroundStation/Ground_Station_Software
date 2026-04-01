@@ -14,11 +14,23 @@ EARTH_RADIUS = 6371000  # meters, used for distance calculations for GPS Graph
 UI_FILE = "Ground_Station_App_Layout.ui"  # Path to your Qt Designer UI file
 
 def lat_lon_to_xy(lat, lon, lat_ref, lon_ref):
+    # normalize longitude difference to the shortest path across the anti-meridian
+    raw_dlon = lon - lon_ref
+    norm_dlon = ((raw_dlon + 180) % 360) - 180
     dlat = math.radians(lat - lat_ref)
-    dlon = math.radians(lon - lon_ref)
-    x = EARTH_RADIUS * dlon * math.cos(math.radians(lat_ref)) # East
-    y = EARTH_RADIUS * dlat # North
+    dlon = math.radians(norm_dlon)
+    x = EARTH_RADIUS * dlon * math.cos(math.radians(lat_ref))  # East positive
+    y = EARTH_RADIUS * dlat  # North positive
     return x, y
+
+def nmea_to_decimal(dm: float) -> float:
+    """Convert NMEA-style ddmm.mmmm to decimal degrees."""
+    try:
+        d = int(dm // 100)
+        m = float(dm) - d * 100
+        return d + m / 60.0
+    except Exception:
+        return float(dm)
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, port_arg=None, baud_arg=None): # constructor
@@ -100,6 +112,15 @@ class MainWindow(QtWidgets.QMainWindow):
             self.baud = None
         else:
             self.baud = str(baud_arg).strip()
+
+        # GPS helpers: buffer first samples to establish stable origin,
+        # remember detected format so we don't flip heuristics mid-run,
+        # and keep last smoothed XY to reduce zigzag jitter.
+        self._gps_origin_buffer = []
+        self._gps_origin_samples = 5
+        self._gps_format = None  # 'decimal' | 'nmea' | 'scaled_100' etc.
+        self._gps_smoothing_alpha = 0.35
+        self._gps_last_xy = None
 
         self._setup_serial()  # Set up the serial connection (will handle defaults)
         self._setup_plot()  # Set up the plot for real-time data visualization
@@ -557,21 +578,110 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
         if "LAT" in data and "LON" in data:
-            lat = float(data["LAT"])
-            lon = float(data["LON"])
+            lat_raw = data["LAT"]
+            lon_raw = data["LON"]
 
-            # Set origin automatically on first GPS data received
+            def _try_formats(raw_lat, raw_lon):
+                """Return (lat, lon, format_name) for the first valid interpretation."""
+                # 1) decimal degrees
+                try:
+                    la = float(raw_lat)
+                    lo = float(raw_lon)
+                    if abs(la) <= 90 and abs(lo) <= 180:
+                        return la, lo, 'decimal'
+                except Exception:
+                    pass
+
+                # 2) NMEA ddmm.mmmm
+                try:
+                    la = nmea_to_decimal(float(raw_lat))
+                    lo = nmea_to_decimal(float(raw_lon))
+                    if abs(la) <= 90 and abs(lo) <= 180:
+                        return la, lo, 'nmea'
+                except Exception:
+                    pass
+
+                # 3) simple scaled values (try common divisors)
+                scales = [100.0, 1000.0, 10000.0]
+                for s in scales:
+                    try:
+                        la = float(raw_lat) / s
+                        lo = float(raw_lon) / s
+                        if abs(la) <= 90 and abs(lo) <= 180:
+                            return la, lo, f'scaled_{int(s)}'
+                    except Exception:
+                        continue
+
+                # Fallback: try floats anyway
+                try:
+                    return float(raw_lat), float(raw_lon), 'decimal'
+                except Exception:
+                    return None, None, None
+
+            # determine or reuse detected format to avoid mid-run flips
+            if self._gps_format is None:
+                lat, lon, fmt = _try_formats(lat_raw, lon_raw)
+                self._gps_format = fmt
+            else:
+                fmt = self._gps_format
+                try:
+                    if fmt == 'decimal' or fmt is None:
+                        lat = float(lat_raw)
+                        lon = float(lon_raw)
+                    elif fmt == 'nmea':
+                        lat = nmea_to_decimal(float(lat_raw))
+                        lon = nmea_to_decimal(float(lon_raw))
+                    elif fmt.startswith('scaled_'):
+                        s = float(fmt.split('_', 1)[1])
+                        lat = float(lat_raw) / s
+                        lon = float(lon_raw) / s
+                    else:
+                        lat = float(lat_raw)
+                        lon = float(lon_raw)
+                except Exception:
+                    # parsing failed for chosen format: try autodetect
+                    lat, lon, fmt = _try_formats(lat_raw, lon_raw)
+                    self._gps_format = fmt
+
+            # apply hemisphere fields if provided
+            if "LAT_DIR" in data and isinstance(data["LAT_DIR"], str):
+                if data["LAT_DIR"].upper() == 'S':
+                    lat = -abs(lat)
+            if "LON_DIR" in data and isinstance(data["LON_DIR"], str):
+                if data["LON_DIR"].upper() == 'W':
+                    lon = -abs(lon)
+
+            if lat is None or lon is None:
+                return
+
+            # Build a stable origin by averaging the first N samples to avoid first-sample jitter
             if self.origin is None:
-                self.origin = (lat, lon)
+                self._gps_origin_buffer.append((lat, lon))
+                if len(self._gps_origin_buffer) < self._gps_origin_samples:
+                    return
+                lat_ref = sum(p[0] for p in self._gps_origin_buffer) / len(self._gps_origin_buffer)
+                lon_ref = sum(p[1] for p in self._gps_origin_buffer) / len(self._gps_origin_buffer)
+                self.origin = (lat_ref, lon_ref)
+            else:
+                lat_ref, lon_ref = self.origin
 
-            lat_ref, lon_ref = self.origin
             x, y = lat_lon_to_xy(lat, lon, lat_ref, lon_ref)  # Convert GPS coordinates to XY
 
-            self.x_data.append(x)  # Append the x-coordinate to the x data list
-            self.y_data.append(y)  # Append the y-coordinate to the y data list
+            # smoothing to reduce zigzag spikes
+            if self._gps_last_xy is None:
+                sx, sy = x, y
+            else:
+                lx, ly = self._gps_last_xy
+                a = self._gps_smoothing_alpha
+                sx = lx * (1.0 - a) + x * a
+                sy = ly * (1.0 - a) + y * a
+            self._gps_last_xy = (sx, sy)
+
+            self.x_data.append(sx)  # Append the x-coordinate to the x data list
+            self.y_data.append(sy)  # Append the y-coordinate to the y data list
 
             self.gps_curve.setData(self.x_data, self.y_data)  # Update the GPS plot with new data
-            self.gps_dot.setData([x], [y])  # Update the GPS plot with the current position as a dot
+            self.gps_dot.setData([sx], [sy])  # Update the GPS plot with the current position as a dot
 
     def closeEvent(self, event):
         try:
