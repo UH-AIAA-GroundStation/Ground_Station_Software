@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2336</width>
-    <height>1363</height>
+    <width>2350</width>
+    <height>1520</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
@@ -32,8 +38,8 @@
          <rect>
           <x>50</x>
           <y>880</y>
-          <width>691</width>
-          <height>371</height>
+          <width>411</width>
+          <height>251</height>
          </rect>
         </property>
         <layout class="QGridLayout" name="gridLayout_2">
@@ -42,28 +48,13 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="gridLayoutWidget_2">
-        <property name="geometry">
-         <rect>
-          <x>1510</x>
-          <y>880</y>
-          <width>381</width>
-          <height>371</height>
-         </rect>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_3">
-         <item row="0" column="0">
-          <widget class="QWidget" name="TempGraph" native="true"/>
-         </item>
-        </layout>
-       </widget>
        <widget class="QWidget" name="gridLayoutWidget_3">
         <property name="geometry">
          <rect>
-          <x>1930</x>
+          <x>1780</x>
           <y>880</y>
-          <width>351</width>
-          <height>371</height>
+          <width>501</width>
+          <height>531</height>
          </rect>
         </property>
         <layout class="QGridLayout" name="gridLayout_4">
@@ -181,9 +172,19 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
           <rect>
            <x>220</x>
            <y>70</y>
-           <width>61</width>
+           <width>41</width>
            <height>81</height>
           </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">font: 16pt &quot;MS Shell Dlg 2&quot;;</string>
+         </property>
+         <property name="html">
+          <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:16pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;A&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
         </widget>
         <widget class="QTextBrowser" name="LongDirectionLCD">
@@ -191,9 +192,19 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
           <rect>
            <x>510</x>
            <y>70</y>
-           <width>61</width>
+           <width>41</width>
            <height>81</height>
           </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">font: 16pt &quot;MS Shell Dlg 2&quot;;</string>
+         </property>
+         <property name="html">
+          <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:16pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;B&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
         </widget>
         <widget class="QLabel" name="label_43">
@@ -279,15 +290,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters</string>
@@ -302,23 +313,24 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
            <x>30</x>
            <y>151</y>
            <width>181</width>
-           <height>21</height>
+           <height>31</height>
           </rect>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;
+font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
-          <string>degrees/minutes</string>
+          <string>degrees/mins</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -329,24 +341,24 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
           <rect>
            <x>310</x>
            <y>151</y>
-           <width>181</width>
-           <height>21</height>
+           <width>191</width>
+           <height>31</height>
           </rect>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
-          <string>degrees/minutes</string>
+          <string>degrees/mins</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -401,15 +413,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters/s²</string>
@@ -465,15 +477,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters/s²</string>
@@ -560,15 +572,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters/s²</string>
@@ -626,15 +638,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters/s²</string>
@@ -690,15 +702,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters/s²</string>
@@ -779,21 +791,21 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
           <rect>
            <x>500</x>
            <y>150</y>
-           <width>161</width>
+           <width>171</width>
            <height>21</height>
           </rect>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters/s²</string>
@@ -851,15 +863,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>rad/s</string>
@@ -915,15 +927,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>rad/s</string>
@@ -1010,15 +1022,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>rad/s</string>
@@ -1056,15 +1068,15 @@ font: 87 9pt &quot;Segoe UI Black&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters</string>
@@ -1166,7 +1178,7 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          <rect>
           <x>50</x>
           <y>660</y>
-          <width>931</width>
+          <width>1061</width>
           <height>181</height>
          </rect>
         </property>
@@ -1181,8 +1193,8 @@ font: 87 9pt &quot;Segoe UI Black&quot;;</string>
         <widget class="QLabel" name="label_46">
          <property name="geometry">
           <rect>
-           <x>490</x>
-           <y>29</y>
+           <x>580</x>
+           <y>30</y>
            <width>191</width>
            <height>41</height>
           </rect>
@@ -1201,8 +1213,8 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
         <widget class="QLabel" name="label_49">
          <property name="geometry">
           <rect>
-           <x>60</x>
-           <y>29</y>
+           <x>150</x>
+           <y>30</y>
            <width>191</width>
            <height>41</height>
           </rect>
@@ -1221,8 +1233,8 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
         <widget class="QLCDNumber" name="BNOQuarLCD_Y">
          <property name="geometry">
           <rect>
-           <x>270</x>
-           <y>69</y>
+           <x>360</x>
+           <y>70</y>
            <width>191</width>
            <height>81</height>
           </rect>
@@ -1237,8 +1249,8 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
         <widget class="QLCDNumber" name="BNOQuarLCD_X">
          <property name="geometry">
           <rect>
-           <x>60</x>
-           <y>69</y>
+           <x>150</x>
+           <y>70</y>
            <width>181</width>
            <height>81</height>
           </rect>
@@ -1268,8 +1280,8 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
         <widget class="QLCDNumber" name="BNOQuarLCD_Z">
          <property name="geometry">
           <rect>
-           <x>490</x>
-           <y>69</y>
+           <x>580</x>
+           <y>70</y>
            <width>191</width>
            <height>81</height>
           </rect>
@@ -1284,8 +1296,8 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
         <widget class="QLabel" name="label_51">
          <property name="geometry">
           <rect>
-           <x>270</x>
-           <y>29</y>
+           <x>360</x>
+           <y>30</y>
            <width>191</width>
            <height>41</height>
           </rect>
@@ -1304,8 +1316,8 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
         <widget class="QLCDNumber" name="BNOQuarLCD_W">
          <property name="geometry">
           <rect>
-           <x>710</x>
-           <y>70</y>
+           <x>800</x>
+           <y>71</y>
            <width>191</width>
            <height>81</height>
           </rect>
@@ -1320,8 +1332,8 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
         <widget class="QLabel" name="label_54">
          <property name="geometry">
           <rect>
-           <x>710</x>
-           <y>30</y>
+           <x>800</x>
+           <y>31</y>
            <width>191</width>
            <height>41</height>
           </rect>
@@ -1489,15 +1501,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>rad/s</string>
@@ -1517,15 +1529,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>rad/s</string>
@@ -1545,15 +1557,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>rad/s</string>
@@ -1714,15 +1726,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>uT</string>
@@ -1742,15 +1754,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>uT</string>
@@ -1770,15 +1782,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>uT</string>
@@ -2011,15 +2023,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>ms</string>
@@ -2039,15 +2051,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>ms</string>
@@ -2067,15 +2079,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>ms</string>
@@ -2095,15 +2107,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>ms</string>
@@ -2123,15 +2135,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>ms</string>
@@ -2190,15 +2202,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters/s²</string>
@@ -2254,15 +2266,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters/s²</string>
@@ -2349,15 +2361,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters/s²</string>
@@ -2415,15 +2427,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>meters</string>
@@ -2479,15 +2491,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>celcius</string>
@@ -2574,15 +2586,15 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="font">
           <font>
-           <family>MS Shell Dlg 2</family>
+           <family>MS UI Gothic</family>
            <pointsize>10</pointsize>
-           <weight>9</weight>
+           <weight>50</weight>
            <italic>false</italic>
            <bold>false</bold>
           </font>
          </property>
          <property name="styleSheet">
-          <string notr="true">font: 75 10pt &quot;MS Shell Dlg 2&quot;;</string>
+          <string notr="true">font: 10pt &quot;MS UI Gothic&quot;;</string>
          </property>
          <property name="text">
           <string>hPa</string>
@@ -2595,30 +2607,105 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
        <widget class="QWidget" name="gridLayoutWidget_4">
         <property name="geometry">
          <rect>
-          <x>780</x>
+          <x>500</x>
           <y>880</y>
-          <width>691</width>
-          <height>171</height>
+          <width>381</width>
+          <height>251</height>
          </rect>
         </property>
         <layout class="QGridLayout" name="gridLayout_5">
          <item row="0" column="0">
-          <widget class="QWidget" name="ADXLAccGraph" native="true"/>
+          <widget class="QWidget" name="ADXLAccGraph_X" native="true"/>
          </item>
         </layout>
        </widget>
        <widget class="QWidget" name="gridLayoutWidget_5">
         <property name="geometry">
          <rect>
-          <x>780</x>
-          <y>1080</y>
-          <width>691</width>
-          <height>171</height>
+          <x>500</x>
+          <y>1170</y>
+          <width>381</width>
+          <height>241</height>
          </rect>
         </property>
         <layout class="QGridLayout" name="gridLayout_6">
          <item row="0" column="0">
-          <widget class="QWidget" name="LSMAccGraph" native="true"/>
+          <widget class="QWidget" name="LSMAccGraph_X" native="true"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="gridLayoutWidget_6">
+        <property name="geometry">
+         <rect>
+          <x>920</x>
+          <y>880</y>
+          <width>381</width>
+          <height>251</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_7">
+         <item row="0" column="0">
+          <widget class="QWidget" name="ADXLAccGraph_Y" native="true"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="gridLayoutWidget_7">
+        <property name="geometry">
+         <rect>
+          <x>1340</x>
+          <y>880</y>
+          <width>401</width>
+          <height>251</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_8">
+         <item row="0" column="0">
+          <widget class="QWidget" name="ADXLAccGraph_Z" native="true"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="gridLayoutWidget_8">
+        <property name="geometry">
+         <rect>
+          <x>920</x>
+          <y>1170</y>
+          <width>381</width>
+          <height>241</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_9">
+         <item row="0" column="0">
+          <widget class="QWidget" name="LSMAccGraph_Y" native="true"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="gridLayoutWidget_9">
+        <property name="geometry">
+         <rect>
+          <x>1340</x>
+          <y>1170</y>
+          <width>401</width>
+          <height>241</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_10">
+         <item row="0" column="0">
+          <widget class="QWidget" name="LSMAccGraph_Z" native="true"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="gridLayoutWidget_2">
+        <property name="geometry">
+         <rect>
+          <x>50</x>
+          <y>1170</y>
+          <width>411</width>
+          <height>241</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0">
+          <widget class="QWidget" name="TempGraph" native="true"/>
          </item>
         </layout>
        </widget>
@@ -2632,7 +2719,7 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>2336</width>
+     <width>2350</width>
      <height>22</height>
     </rect>
    </property>
