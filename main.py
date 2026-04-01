@@ -1,4 +1,4 @@
-import sys
+import os, sys
 import time
 import serial
 import math
@@ -12,6 +12,11 @@ port = ""  # Default port value
 baud = ""  # Default baud rate value
 EARTH_RADIUS = 6371000  # meters, used for distance calculations for GPS Graph
 UI_FILE = "Ground_Station_App_Layout.ui"  # Path to your Qt Designer UI file
+
+
+def resource_path(relative_path: str) -> str:
+    base_path = getattr(sys, '_MEIPASS', os.path.abspath('.'))
+    return os.path.join(base_path, relative_path)
 
 def lat_lon_to_xy(lat, lon, lat_ref, lon_ref):
     # normalize longitude difference to the shortest path across the anti-meridian
@@ -125,11 +130,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self._setup_serial()  # Set up the serial connection (will handle defaults)
         self._setup_plot()  # Set up the plot for real-time data visualization
         self._setup_timer()  # Set up a timer to read data from the serial port
-        self.setWindowIcon(QIcon('cropped-aiaaweblogo.png'))  # Set the window icon to the AIAA logo
+        self.setWindowIcon(QIcon(resource_path('cropped-aiaaweblogo.png')))  # Set the window icon to the AIAA logo
 
     def _load_ui(self):
         # Load the UI from the .ui file
-        uic.loadUi(UI_FILE, self)
+        uic.loadUi(resource_path(UI_FILE), self)
         self.setFixedSize(self.size())  # Set the window to a fixed size based on the UI design
         self.alt_plot_holder = self.AltitudeGraph # Get the plot holder widget from the UI
         self.temp_plot_holder = self.TempGraph # Get the temperature plot holder widget from the UI
@@ -142,6 +147,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.lsm_plot_holder_z = self.LSMAccGraph_Z # Get the LSM Acceleration Z plot holder widget from the UI
 
         self.gps_plot_holder = self.GPSGraph # Get the GPS plot holder widget from the UI
+
+        # Add a simple Pause/Resume button to toggle live graphing
+        try:
+            self.pause_btn = QtWidgets.QPushButton("Pause", self)
+            self.pause_btn.setGeometry(10, 35, 90, 30)
+            self.pause_btn.clicked.connect(self._toggle_pause)
+            self._paused = False
+        except Exception:
+            pass
 
     def _setup_serial(self):
         # Safely determine baud as integer and open serial port, use default rate if input is invalid
@@ -402,7 +416,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.y_data = []  
 
         # Create a curve for real-time GPS data plotting
-        self.gps_curve = self.GPSPlot.plot() 
+        self.gps_curve = self.GPSPlot.plot()
+        # heading indicator (line) - updated each tick when movement detected
+        self.heading_line = self.GPSPlot.plot([], [], pen=pg.mkPen('r', width=2))
 
 
         # Start time for x-axis of all plots
@@ -413,6 +429,33 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_timer = QtCore.QTimer(self)  # Create a QTimer for periodic updates
         self.update_timer.timeout.connect(self._tick)  # Connect the timer to the data update method
         self.update_timer.start(100)  # Set the timer to trigger every 100 ms
+
+    def _toggle_pause(self):
+        # Toggle pause/resume of live graphing by stopping/starting the update timer
+        if not hasattr(self, 'update_timer') or self.update_timer is None:
+            return
+        if getattr(self, '_paused', False):
+            # resume
+            try:
+                self.update_timer.start(100)
+            except Exception:
+                pass
+            try:
+                self.pause_btn.setText('Pause')
+            except Exception:
+                pass
+            self._paused = False
+        else:
+            # pause
+            try:
+                self.update_timer.stop()
+            except Exception:
+                pass
+            try:
+                self.pause_btn.setText('Resume')
+            except Exception:
+                pass
+            self._paused = True
 
     def _tick(self):
         line = self.ser.readline().decode("utf-8").strip()  # Read a line from the serial port
@@ -676,6 +719,28 @@ class MainWindow(QtWidgets.QMainWindow):
                 sx = lx * (1.0 - a) + x * a
                 sy = ly * (1.0 - a) + y * a
             self._gps_last_xy = (sx, sy)
+
+            # compute heading from previous smoothed position (if available)
+            heading = None
+            if getattr(self, '_gps_prev_xy', None) is not None:
+                px, py = self._gps_prev_xy
+                dx = sx - px
+                dy = sy - py
+                dist = math.hypot(dx, dy)
+                if dist > 0.5:  # only compute heading when movement > 0.5 m
+                    heading = (math.degrees(math.atan2(dx, dy)) + 360) % 360
+            # store previous point for next tick
+            self._gps_prev_xy = (sx, sy)
+
+            # draw heading line (20 m length) when available
+            if heading is not None:
+                L = 20.0
+                rad = math.radians(heading)
+                vx = math.sin(rad) * L
+                vy = math.cos(rad) * L
+                self.heading_line.setData([sx, sx + vx], [sy, sy + vy])
+            else:
+                self.heading_line.setData([], [])
 
             self.x_data.append(sx)  # Append the x-coordinate to the x data list
             self.y_data.append(sy)  # Append the y-coordinate to the y data list
