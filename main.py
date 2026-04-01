@@ -625,7 +625,7 @@ class MainWindow(QtWidgets.QMainWindow):
             lon_raw = data["LON"]
 
             def _try_formats(raw_lat, raw_lon):
-                """Return (lat, lon, format_name) for the first valid interpretation."""
+                # Return (lat, lon, format_name) for the first valid interpretation
                 # 1) decimal degrees
                 try:
                     la = float(raw_lat)
