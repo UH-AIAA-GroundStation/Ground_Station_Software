@@ -8,9 +8,9 @@ import pyqtgraph as pg  # Import pyqtgraph for plotting
 from collections import deque  # Import deque for efficient data storage
 from PyQt5.QtGui import QIcon
 
+port = ""  # Default port value
+baud = ""  # Default baud rate value
 EARTH_RADIUS = 6371000  # meters, used for distance calculations for GPS Graph
-PORT = "COM3"  # Replace with your serial port
-BAUD_RATE = 9600  # Replace with your baud rate (to be improved later)
 UI_FILE = "Ground_Station_App_Layout.ui"  # Path to your Qt Designer UI file
 
 def lat_lon_to_xy(lat, lon, lat_ref, lon_ref):
@@ -21,7 +21,7 @@ def lat_lon_to_xy(lat, lon, lat_ref, lon_ref):
     return x, y
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self): # constructor
+    def __init__(self, port_arg=None, baud_arg=None): # constructor
         super().__init__()  # Initialize the parent class (QMainWindow)
 
         self._load_ui()  # Load the UI from the .ui file
@@ -91,7 +91,17 @@ class MainWindow(QtWidgets.QMainWindow):
             "GPS_SAT": self.SattelitesLCD,
         }  
 
-        self._setup_serial()  # Set up the serial connection
+        # store raw/sanitized args and let _setup_serial handle defaults/validation
+        if isinstance(port_arg, str):
+            port_arg = port_arg.strip()
+        self.port = port_arg if port_arg else None
+
+        if baud_arg is None:
+            self.baud = None
+        else:
+            self.baud = str(baud_arg).strip()
+
+        self._setup_serial()  # Set up the serial connection (will handle defaults)
         self._setup_plot()  # Set up the plot for real-time data visualization
         self._setup_timer()  # Set up a timer to read data from the serial port
         self.setWindowIcon(QIcon('cropped-aiaaweblogo.png'))  # Set the window icon to the AIAA logo
@@ -113,7 +123,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.gps_plot_holder = self.GPSGraph # Get the GPS plot holder widget from the UI
 
     def _setup_serial(self):
-        self.ser = serial.Serial(PORT, BAUD_RATE, timeout=1)  # Initialize the serial connection
+        # Safely determine baud as integer and open serial port, use default rate if input is invalid
+        try:
+            baud_int = int(self.baud)
+        except Exception:
+            try:
+                baud_int = int(globals().get('baud', '9600'))
+            except Exception:
+                baud_int = 9600
+
+        try:
+            self.ser = serial.Serial(self.port, baud_int, timeout=1)
+        except Exception as e:
+            # don't crash; keep app running and show a warning
+            print(f"Failed to open serial port {self.port} at {baud_int}: {e}")
+            self.ser = None
+            try:
+                QtWidgets.QMessageBox.warning(self, "Serial Error", f"Failed to open serial port {self.port} at {baud_int}: {e}")
+            except Exception:
+                pass
 
     def parse_serial_data(self,line: str) -> dict:
         output = {}
@@ -138,12 +166,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 continue
             except ValueError:
                 pass
-
-            # booleans
-            low = value.lower()
-            if low == 'true' or low == 'false':
-                output[key] = (low == 'true')
-                continue
 
             # otherwise preserve raw text (directions, state strings, etc.)
             output[key] = value

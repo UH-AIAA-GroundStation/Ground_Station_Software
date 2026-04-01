@@ -10,16 +10,28 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon
-from main import MainWindow
-
+from main import MainWindow  # Import the MainWindow class from main.py
 
 class Ui_Dialog(object):
     def openMainWindow(self):
         # Instantiate and show the MainWindow subclass directly so
         # its constructor (__init__) runs and timers/plots/serial are active.
-        self.window = MainWindow()
+        # pass entered port/baud to MainWindow (fall back to defaults if not provided)
+        port = getattr(self, 'port', None)
+        baud = getattr(self, 'baud', None)
+        self.window = MainWindow(port, baud)
         self.window.show()
 
+    def changePORTBAUD(self):
+        # Get the text from the text edits and store them in variables
+        # store values on the dialog instance for later use
+        self.port = self.textEdit.toPlainText().strip()
+        self.baud = self.textEdit_2.toPlainText().strip()
+
+    def handleButtonClick(self):
+        self.changePORTBAUD()  # Update PORT and BAUD values
+        # Open the main window
+        self.openMainWindow()
 
     def setupUi(self, Dialog):
         Dialog.setObjectName("First Dialog")
@@ -44,7 +56,7 @@ class Ui_Dialog(object):
         self.label.setGeometry(QtCore.QRect(100, 190, 111, 71))
         self.label.setStyleSheet("font: 75 15pt \"MS Shell Dlg 2\";")
         self.label.setObjectName("label")
-        self.pushButton = QtWidgets.QPushButton(self.groupBox, clicked = lambda: self.openMainWindow())
+        self.pushButton = QtWidgets.QPushButton(self.groupBox, clicked = self.handleButtonClick)
         self.pushButton.setGeometry(QtCore.QRect(200, 410, 251, 81))
         self.pushButton.setObjectName("pushButton")
         self.label_3 = QtWidgets.QLabel(self.groupBox)
