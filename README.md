@@ -11,3 +11,11 @@ Ground station software
   -  Avoid long lines
   -  Explicit naming (no i,j,etc... Ex: time)
   -  ReadMe for your code
+
+
+  # Build .exe 
+  pyinstaller --noconfirm --onefile --windowed `
+>>   --add-data "Entry_Layout.ui;." `
+>>   --add-data "Ground_Station_App_Layout.ui;." `
+>>   --add-data "cropped-aiaaweblogo.png;." `
+>>   entry.py
