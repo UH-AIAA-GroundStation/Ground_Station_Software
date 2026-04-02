@@ -337,6 +337,30 @@ function toggleRecording() {
 startbtn.addEventListener("click", toggleRecording);
 
 
+
+async function postTelemetryData() {
+    try {
+        const response = await fetch("http://127.0.0.1:8000/post_data", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            // We don't need to send a body because the backend 
+            // generates the data from the Sensor_reader class
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("Data saved to MongoDB with ID:", result.id);
+        
+    } catch (error) {
+        console.error("Failed to post data:", error);
+    }
+}
+
 async function fetchData() {
     if (!record) return;
 
@@ -410,7 +434,7 @@ async function fetchData() {
 
 }
 
-async function resetSensorData() {
+/*async function resetSensorData() {
     try {
         const response = await fetch('http://127.0.0.1:8000/reset', {
             method: 'POST', // Specify the method
@@ -431,10 +455,10 @@ async function resetSensorData() {
     } catch (error) {
         console.error('Network error:', error);
     }
-}
+}*/
 
 const resetBtn = document.getElementById("resetbtn");
-resetBtn.addEventListener("click", resetSensorData);
+//resetBtn.addEventListener("click", resetSensorData);
 
 
 setInterval(fetchData,1000);
