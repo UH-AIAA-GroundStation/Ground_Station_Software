@@ -29,7 +29,7 @@ def lat_lon_to_xy(lat, lon, lat_ref, lon_ref):
     return x, y
 
 def nmea_to_decimal(dm: float) -> float:
-    """Convert NMEA-style ddmm.mmmm to decimal degrees."""
+    # Convert NMEA-style ddmm.mmmm to decimal degrees.
     try:
         d = int(dm // 100)
         m = float(dm) - d * 100
@@ -126,6 +126,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self._gps_format = None  # 'decimal' | 'nmea' | 'scaled_100' etc.
         self._gps_smoothing_alpha = 0.35
         self._gps_last_xy = None
+        # short recent-window for median filtering and timing for speed checks
+        self._gps_recent = deque(maxlen=3)
+        self._last_time = None
+        self._max_speed_m_s = 100.0
 
         self._setup_serial()  # Set up the serial connection (will handle defaults)
         self._setup_plot()  # Set up the plot for real-time data visualization
@@ -624,18 +628,14 @@ class MainWindow(QtWidgets.QMainWindow):
             lat_raw = data["LAT"]
             lon_raw = data["LON"]
 
+            try:
+                print(f"GPS raw tokens: LAT={lat_raw!r}, LON={lon_raw!r}, detected_fmt={self._gps_format}")
+            except Exception:
+                pass
+
             def _try_formats(raw_lat, raw_lon):
                 # Return (lat, lon, format_name) for the first valid interpretation
-                # 1) decimal degrees
-                try:
-                    la = float(raw_lat)
-                    lo = float(raw_lon)
-                    if abs(la) <= 90 and abs(lo) <= 180:
-                        return la, lo, 'decimal'
-                except Exception:
-                    pass
-
-                # 2) NMEA ddmm.mmmm
+                # 1) NMEA ddmm.mmmm (degrees+minutes) - try first 
                 try:
                     la = nmea_to_decimal(float(raw_lat))
                     lo = nmea_to_decimal(float(raw_lon))
@@ -644,8 +644,18 @@ class MainWindow(QtWidgets.QMainWindow):
                 except Exception:
                     pass
 
-                # 3) simple scaled values (try common divisors)
-                scales = [100.0, 1000.0, 10000.0]
+                # 2) decimal degrees
+                try:
+                    la = float(raw_lat)
+                    lo = float(raw_lon)
+                    if abs(la) <= 90 and abs(lo) <= 180:
+                        return la, lo, 'decimal'
+                except Exception:
+                    pass
+
+                # 3) simple scaled values (try common divisors). Prefer larger divisors
+                # first to detect values that are sent as integers (e.g. 10500 -> 0.10500°)
+                scales = [100000.0, 10000.0, 1000.0, 100.0]
                 for s in scales:
                     try:
                         la = float(raw_lat) / s
@@ -710,14 +720,91 @@ class MainWindow(QtWidgets.QMainWindow):
 
             x, y = lat_lon_to_xy(lat, lon, lat_ref, lon_ref)  # Convert GPS coordinates to XY
 
-            # smoothing to reduce zigzag spikes
+            # median filter + EMA smoothing and speed-based outlier rejection
+            # timestamp for this sample: prefer device TIMEMS when monotonic/valid,
+            # otherwise fall back to monotonic perf_counter to avoid tiny/wrapping TIMEMS values
+            perf_now = time.perf_counter()
+            prev_perf = getattr(self, '_last_perf_time', None)
+            timems_used = False
+            timems_sec = None
+            try:
+                if "TIMEMS" in data:
+                    timems_sec = float(data["TIMEMS"]) / 1000.0
+            except Exception:
+                timems_sec = None
+
+            dt = None
+            if timems_sec is not None and getattr(self, '_last_timems_sec', None) is not None:
+                dt_timems = timems_sec - self._last_timems_sec
+                # accept TIMEMS delta only if positive and reasonably bounded (avoid wraps or bad units)
+                if 0 < dt_timems < 10.0:
+                    t = timems_sec
+                    dt = dt_timems
+                    timems_used = True
+                else:
+                    t = perf_now
+                    dt = perf_now - (prev_perf if prev_perf is not None else perf_now)
+            else:
+                # no prior TIMEMS to diff against, or TIMEMS missing: use perf counter
+                t = perf_now
+                dt = perf_now - (prev_perf if prev_perf is not None else perf_now)
+
+            # store last-time bookkeeping
+            self._last_timems_sec = timems_sec
+            self._last_perf_time = perf_now
+            self._last_time = t
+
+            # simple speed-based outlier handling using previous smoothed point
+            if self._gps_last_xy is not None and dt and dt > 0:
+                px, py = self._gps_last_xy
+                dist_prev = math.hypot(x - px, y - py)
+                speed = dist_prev / dt
+                # dt/speed debug removed
+
+                if speed > self._max_speed_m_s:
+                    # If TIMEMS was used but dt is suspiciously small, recompute speed with perf_counter dt
+                    if timems_used and prev_perf is not None:
+                        perf_dt = perf_now - prev_perf
+                        if perf_dt > 0:
+                            perf_speed = dist_prev / perf_dt
+                            # perf-fallback debug removed
+                            if perf_speed <= self._max_speed_m_s:
+                                # accept using perf_dt (t remains TIMEMS for display coherence)
+                                pass
+                            else:
+                                # instead of rejecting the sample entirely (which can freeze the plot),
+                                # cap the movement to the maximum allowed distance for this dt
+                                # capping debug removed
+                                if dist_prev > 0:
+                                    scale = (self._max_speed_m_s * dt) / dist_prev
+                                    x = px + (x - px) * scale
+                                    y = py + (y - py) * scale
+                                else:
+                                    x, y = px, py
+                    else:
+                        # capping debug removed
+                        if dist_prev > 0:
+                            scale = (self._max_speed_m_s * dt) / dist_prev
+                            x = px + (x - px) * scale
+                            y = py + (y - py) * scale
+                        else:
+                            x, y = px, py
+
+            # median filter over recent samples to remove single-sample spikes
+            self._gps_recent.append((x, y))
+            xs = sorted(p[0] for p in self._gps_recent)
+            ys = sorted(p[1] for p in self._gps_recent)
+            mx = xs[len(xs) // 2]
+            my = ys[len(ys) // 2]
+
+            # mild EMA smoothing (alpha near 1 = less smoothing)
+            alpha = 0.85
             if self._gps_last_xy is None:
-                sx, sy = x, y
+                sx, sy = mx, my
             else:
                 lx, ly = self._gps_last_xy
-                a = self._gps_smoothing_alpha
-                sx = lx * (1.0 - a) + x * a
-                sy = ly * (1.0 - a) + y * a
+                sx = lx * (1.0 - alpha) + mx * alpha
+                sy = ly * (1.0 - alpha) + my * alpha
             self._gps_last_xy = (sx, sy)
 
             # compute heading from previous smoothed position (if available)
