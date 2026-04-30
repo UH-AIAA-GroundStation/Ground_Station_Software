@@ -318,7 +318,10 @@ gpsListeningRect.on("mouseleave", function () {
     gpsTooltip.style("display", "none");
 });
 
+const resetBtn = document.getElementById("resetbtn");
 const startbtn = document.getElementById("startbtn");
+startbtn.style.display = "none";
+resetBtn.style.display = "none";
 
 let record = false;
 
@@ -334,6 +337,38 @@ function toggleRecording() {
         startbtn.classList.remove("on");
     }
 } 
+
+let isHost = false; 
+const ADMIN_PASSKEY = "1234"; // Replace with your actual secure passkey
+
+const hostModal = document.getElementById("hostModal");
+const passkeyInput = document.querySelector(".host-check input");
+const submitBtn = document.getElementById("submit");
+const cancelBtn = document.getElementById("cancel");
+
+// 1. Handle Submit
+submitBtn.addEventListener("click", () => {
+    if (passkeyInput.value === ADMIN_PASSKEY) {
+        isHost = true;
+        hostModal.style.display = "none"; // Hide the modal
+        alert("Admin access granted. You are now the Host.");
+        
+        // Optional: Change the button color or text to show recording is enabled
+        startbtn.style.display = "block";
+        resetBtn.style.display = "block";
+    } else {
+        alert("Incorrect passkey. Access denied.");
+        passkeyInput.value = ""; // Clear input
+    }
+});
+
+// 2. Handle Cancel
+cancelBtn.addEventListener("click", () => {
+    isHost = false;
+    hostModal.style.display = "none";
+    console.log("Proceeding as viewer only.");
+});
+
 startbtn.addEventListener("click", toggleRecording);
 
 
@@ -342,7 +377,7 @@ async function fetchData() {
 
   try {
     // Await the fetch call and get the Response object
-    const response = await fetch("http://127.0.0.1:8000/read_data");
+    const response = await fetch("http://127.0.0.1:8000/history?limit=200");
 
     // Check if the request was successful
     if (!response.ok) {
@@ -411,31 +446,35 @@ async function fetchData() {
 }
 
 async function resetSensorData() {
+    if (!confirm("Are you sure you want to clear all flight records from the database?")) return;
+
     try {
         const response = await fetch('http://127.0.0.1:8000/reset', {
-            method: 'POST', // Specify the method
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            // If your reset needed data, you'd put it in 'body', 
-            // but for a simple reset, we leave it out.
+            method: 'POST',
         });
 
         if (response.ok) {
-            const data = await response.json();
-            console.log('Success:', data.message);
-            alert('Sensor data has been cleared!');
-        } else {
-            console.error('Server error:', response.status);
+            // 1. Clear local JS arrays so graphs empty immediately
+            altData = [];
+            tempData = [];
+            gpsData = [];
+
+            // 2. Remove the 'd' attribute from paths to clear the lines
+            altPath.attr("d", null);
+            tempPath.attr("d", null);
+            gpsPath.attr("d", null);
+
+            console.log('Database and local graphs cleared');
         }
     } catch (error) {
         console.error('Network error:', error);
     }
 }
 
-const resetBtn = document.getElementById("resetbtn");
+
 resetBtn.addEventListener("click", resetSensorData);
 
 
 setInterval(fetchData,1000);
+
 

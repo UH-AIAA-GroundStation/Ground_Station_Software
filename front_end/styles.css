@@ -33,3 +33,81 @@ h1{
     height: 325px;
 
 }
+/* The semi-transparent background overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); /* Dims the screen */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensures it sits on top of D3 and tooltips */
+}
+
+/* The centered passkey box */
+.host-check {
+    position: fixed; /* Stays in place during scroll */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Perfectly offsets its own width/height */
+    
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    width: 320px;
+    z-index: 1001; /* Must be higher than the overlay */
+}
+
+.host-check h5 {
+    margin: 0 0 1.5rem 0;
+    font-family: sans-serif;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.host-check input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
+/* Button Container */
+.btn-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.host-check button {
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    flex: 1; /* Makes both buttons the same width */
+    transition: filter 0.2s;
+}
+
+#cancel {
+    background-color: #007bff; /* Blue */
+    color: white;
+    border: none;
+}
+
+#submit {
+    background-color: #ffffff; /* White */
+    color: #333;
+    border: 1px solid #ccc;
+}
+
+.host-check button:hover {
+    filter: brightness(90%);
+}

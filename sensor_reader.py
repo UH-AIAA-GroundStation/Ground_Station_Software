@@ -15,7 +15,6 @@ class Sensor_reader:
 
     def __init__(self):
 
-        self.ser = serial.Serial(PORT, BAUD_RATE, timeout=1)
 
         # Data storage
         self.altitude_data = []
@@ -28,6 +27,7 @@ class Sensor_reader:
         self.origin = None
         self.time_x = time.perf_counter()
 
+
     
 
     def lat_lon_to_xy(self, lat, lon, lat_ref, lon_ref):
@@ -38,8 +38,8 @@ class Sensor_reader:
         return x, y
     
 
-    #def _setup_serial(self):
-     #   self.ser = serial.Serial(PORT, BAUD_RATE, timeout=1)  # Initialize the serial connection
+    def _setup_serial(self):
+       self.ser = serial.Serial(PORT, BAUD_RATE, timeout=1)  # Initialize the serial connection
 
     def parse_serial_data(self,line: str) -> dict:
         output = {}
@@ -61,15 +61,18 @@ class Sensor_reader:
 
     def _tick(self):
 
+
         if self.ser is None or not self.ser.is_open:
              return
 
         line = self.ser.readline().decode("utf-8").strip()  # Read a line from the serial port
         if not line:
+            print("No Data")
             return  # If no data is read, exit the method
         
         # Parse the serial data into a dictionary
-        data = self.parse_serial_data(line) 
+
+        data = self.parse_serial_data(line)
 
 
 
@@ -104,6 +107,7 @@ class Sensor_reader:
 
             self.x_data.append(x)  # Append the x-coordinate to the x data list
             self.y_data.append(y)  # Append the y-coordinate to the y data list
+            
 
 
     def closeEvent(self, event):
@@ -130,4 +134,4 @@ class Sensor_reader:
         # Reset the start time so graphs start back at T=0
         self.time_x = time.perf_counter()
         
-        print("Data has been reset.")
+        
