@@ -13,28 +13,28 @@
 
 /// 1 byte padding
 #pragma pack(push, 1)
-typedef struct {
+typedef struct LORAMessage {
     uint64_t BMP_time;
-    uint16_t BMP_temp, BMP_pressure, BMP_altitude;
+    int16_t BMP_temp, BMP_pressure, BMP_altitude;
 
     uint64_t LSM_time;
-    uint16_t LSM_accel[3];
-    uint16_t LSM_gyro[3];
+    int16_t LSM_accel[3];
+    int16_t LSM_gyro[3];
 
     uint64_t ADXL_time;
-    uint16_t ADXL_accel[3];
+    int16_t ADXL_accel[3];
 
     uint64_t BNO_time;
-    uint16_t BNO_quat[4];
-    uint16_t BNO_euler[3];
-    uint16_t BNO_magnet[3];
-    uint16_t BNO_accel[3];
+    int16_t BNO_quat[4];
+    int16_t BNO_euler[3];
+    int16_t BNO_magnet[3];
+    int16_t BNO_accel[3];
 
     uint64_t GPS_time;
-    uint8_t GPS_sat;
-    uint16_t GPS_lon, GPS_lat;
+    int8_t GPS_sat;
+    int16_t GPS_lon, GPS_lat;
     char GPS_lon_dir, GPS_lat_dir;
-    uint16_t GPS_alt;
+    int16_t GPS_alt;
 
     uint8_t flightState;
     float apogeeEstimate;
@@ -100,17 +100,17 @@ void logDataToSD(File &file, const OutputData_t &FlightData, uint32_t counter, u
     file.print(counter);                    file.print(",");
     file.print(failBits, BIN);              file.print(",");
 
-    file.print(d.BMP_time);                 file.print(",");
+    file.print(FlightData.BMP_time);                 file.print(",");
     file.print(SCALE_1000(FlightData.BMP_temp));     file.print(",");
     file.print(SCALE_1000(FlightData.BMP_pressure)); file.print(",");
     file.print(SCALE_1000(FlightData.BMP_altitude)); file.print(",");
 
-    file.print(d.ADXL_time);                file.print(",");
+    file.print(FlightData.ADXL_time);                file.print(",");
     file.print(SCALE_1000(FlightData.ADXL_accel[0])); file.print(",");
     file.print(SCALE_1000(FlightData.ADXL_accel[1])); file.print(",");
     file.print(SCALE_1000(FlightData.ADXL_accel[2])); file.print(",");
 
-    file.print(d.LSM_time);                 file.print(",");
+    file.print(FlightData.LSM_time);                 file.print(",");
     file.print(SCALE_1000(FlightData.LSM_accel[0])); file.print(",");
     file.print(SCALE_1000(FlightData.LSM_accel[1])); file.print(",");
     file.print(SCALE_1000(FlightData.LSM_accel[2])); file.print(",");
@@ -118,7 +118,7 @@ void logDataToSD(File &file, const OutputData_t &FlightData, uint32_t counter, u
     file.print(SCALE_1000(FlightData.LSM_gyro[1]));  file.print(",");
     file.print(SCALE_1000(FlightData.LSM_gyro[2]));  file.print(",");
 
-    file.print(d.BNO_time);                 file.print(",");
+    file.print(FlightData.BNO_time);                 file.print(",");
     file.print(SCALE_1000(FlightData.BNO_quat[0]));  file.print(",");
     file.print(SCALE_1000(FlightData.BNO_quat[1]));  file.print(",");
     file.print(SCALE_1000(FlightData.BNO_quat[2]));  file.print(",");
@@ -144,8 +144,8 @@ void logDataToSD(File &file, const OutputData_t &FlightData, uint32_t counter, u
     file.print(FlightData.GPS_lon_dir);              file.print(",");
     file.print(SCALE_1000(FlightData.GPS_alt));      file.print(",");
 
-    file.print(d.flightState);              file.print(",");
-    file.print(d.apogeeEstimate);
+    file.print(FlightData.flightState);              file.print(",");
+    file.print(FlightData.apogeeEstimate);
 
     file.println();
 }
@@ -160,12 +160,12 @@ void printToSerial(const OutputData_t &FlightData, uint32_t counter, uint8_t fai
     Serial.print("PRESS:");          Serial.print(SCALE_1000(FlightData.BMP_pressure)); Serial.print(",");
     Serial.print("BMP_ALT:");        Serial.print(SCALE_1000(FlightData.BMP_altitude)); Serial.print(",");
 
-    Serial.print("ADXL_TIME:");      Serial.print(d.ADXL_time); Serial.print(",");
+    Serial.print("ADXL_TIME:");      Serial.print(FlightData.ADXL_time); Serial.print(",");
     Serial.print("ADXL_ACCEL_X:");   Serial.print(SCALE_1000(FlightData.ADXL_accel[0])); Serial.print(",");
     Serial.print("ADXL_ACCEL_Y:");   Serial.print(SCALE_1000(FlightData.ADXL_accel[1])); Serial.print(",");
     Serial.print("ADXL_ACCEL_Z:");   Serial.print(SCALE_1000(FlightData.ADXL_accel[2])); Serial.print(",");
 
-    Serial.print("LSM_TIME:");       Serial.print(d.LSM_time); Serial.print(",");
+    Serial.print("LSM_TIME:");       Serial.print(FlightData.LSM_time); Serial.print(",");
     Serial.print("LSM_ACCEL_X:");    Serial.print(SCALE_1000(FlightData.LSM_accel[0])); Serial.print(",");
     Serial.print("LSM_ACCEL_Y:");    Serial.print(SCALE_1000(FlightData.LSM_accel[1])); Serial.print(",");
     Serial.print("LSM_ACCEL_Z:");    Serial.print(SCALE_1000(FlightData.LSM_accel[2])); Serial.print(",");
@@ -173,11 +173,11 @@ void printToSerial(const OutputData_t &FlightData, uint32_t counter, uint8_t fai
     Serial.print("LSM_GYRO_Y:");     Serial.print(SCALE_1000(FlightData.LSM_gyro[1])); Serial.print(",");
     Serial.print("LSM_GYRO_Z:");     Serial.print(SCALE_1000(FlightData.LSM_gyro[2])); Serial.print(",");
 
-    Serial.print("BNO_TIME:");       Serial.print(d.BNO_time); Serial.print(",");
-    Serial.print("BNO_QUAT_X:");     Serial.print(SCALE_1000(FlightData.BNO_quat[0])); Serial.print(",");
-    Serial.print("BNO_QUAT_Y:");     Serial.print(SCALE_1000(FlightData.BNO_quat[1])); Serial.print(",");
-    Serial.print("BNO_QUAT_Z:");     Serial.print(SCALE_1000(FlightData.BNO_quat[2])); Serial.print(",");
-    Serial.print("BNO_QUAT_W:");     Serial.print(SCALE_1000(FlightData.BNO_quat[3])); Serial.print(",");
+    Serial.print("BNO_TIME:");       Serial.print(FlightData.BNO_time); Serial.print(",");
+    Serial.print("BNO_QUAT_W:");     Serial.print(SCALE_1000(FlightData.BNO_quat[0])); Serial.print(",");
+    Serial.print("BNO_QUAT_X:");     Serial.print(SCALE_1000(FlightData.BNO_quat[1])); Serial.print(",");
+    Serial.print("BNO_QUAT_Y:");     Serial.print(SCALE_1000(FlightData.BNO_quat[2])); Serial.print(",");
+    Serial.print("BNO_QUAT_Z:");     Serial.print(SCALE_1000(FlightData.BNO_quat[3])); Serial.print(",");
 
     Serial.print("BNO_ACCEL_X:");    Serial.print(SCALE_1000(FlightData.BNO_accel[0])); Serial.print(",");
     Serial.print("BNO_ACCEL_Y:");    Serial.print(SCALE_1000(FlightData.BNO_accel[1])); Serial.print(",");
