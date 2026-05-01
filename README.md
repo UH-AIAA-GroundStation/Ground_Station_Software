@@ -15,7 +15,7 @@ Ground station software
 
   # Build .exe 
   pyinstaller --noconfirm --onefile --windowed `
->>   --add-data "Entry_Layout.ui;." `
->>   --add-data "Ground_Station_App_Layout.ui;." `
->>   --add-data "cropped-aiaaweblogo.png;." `
->>   entry.py
+    --add-data "Entry_Layout.ui;." `
+    --add-data "Ground_Station_App_Layout.ui;." `
+    --add-data "cropped-aiaaweblogo.png;." `
+    entry.py

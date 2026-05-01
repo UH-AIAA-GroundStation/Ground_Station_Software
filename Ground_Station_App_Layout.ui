@@ -1204,7 +1204,7 @@ font: 87 9pt &quot;Segoe UI Black&quot;;</string>
 font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="text">
-          <string>Z</string>
+          <string>Y</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -1224,13 +1224,13 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
 font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="text">
-          <string>X</string>
+          <string>W</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
          </property>
         </widget>
-        <widget class="QLCDNumber" name="BNOQuarLCD_Y">
+        <widget class="QLCDNumber" name="BNOQuarLCD_X">
          <property name="geometry">
           <rect>
            <x>360</x>
@@ -1246,7 +1246,7 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
           <number>7</number>
          </property>
         </widget>
-        <widget class="QLCDNumber" name="BNOQuarLCD_X">
+        <widget class="QLCDNumber" name="BNOQuarLCD_W">
          <property name="geometry">
           <rect>
            <x>150</x>
@@ -1277,7 +1277,7 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
           <enum>QLCDNumber::Filled</enum>
          </property>
         </widget>
-        <widget class="QLCDNumber" name="BNOQuarLCD_Z">
+        <widget class="QLCDNumber" name="BNOQuarLCD_Y">
          <property name="geometry">
           <rect>
            <x>580</x>
@@ -1307,13 +1307,13 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
 font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="text">
-          <string>Y</string>
+          <string>X</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
          </property>
         </widget>
-        <widget class="QLCDNumber" name="BNOQuarLCD_W">
+        <widget class="QLCDNumber" name="BNOQuarLCD_Z">
          <property name="geometry">
           <rect>
            <x>800</x>
@@ -1343,7 +1343,7 @@ font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
 font: 11pt &quot;MS Shell Dlg 2&quot;;</string>
          </property>
          <property name="text">
-          <string>W</string>
+          <string>Z</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
