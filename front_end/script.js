@@ -325,18 +325,6 @@ resetBtn.style.display = "none";
 
 let record = false;
 
-function toggleRecording() {
-    if(!record){
-        startbtn.innerHTML = "Stop Recording";
-        record=true;
-        startbtn.classList.add("on");
-    }
-    else{
-        startbtn.innerHTML = "Start Recording"
-        record = false;
-        startbtn.classList.remove("on");
-    }
-} 
 
 let isHost = false; 
 const ADMIN_PASSKEY = "1234"; // Replace with your actual secure passkey
@@ -369,28 +357,12 @@ cancelBtn.addEventListener("click", () => {
     console.log("Proceeding as viewer only.");
 });
 
-startbtn.addEventListener("click", toggleRecording);
 
-
-async function fetchData() {
-    if (!record) return;
-
-  try {
-    // Await the fetch call and get the Response object
-    const response = await fetch("http://127.0.0.1:8000/history?limit=200");
-
-    // Check if the request was successful
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    // Await the response.json() call to parse the body as JSON
-    const data = await response.json();
-
+function updateCharts(data){
     //transform data
     altData = data.altitude.timestamps.map((t, i) => ({
-        time: t,
-        val: data.altitude.values[i]
+    time: t,
+    val: data.altitude.values[i]
     }));
     if (altData.length > 0) {
         altX.domain([0, d3.max(altData, d => d.time) + 10]);
@@ -437,13 +409,63 @@ async function fetchData() {
     
     gpsPath.datum(gpsData).attr("d", gpsLine);
     //console.log(altData)
-    
-  } catch (error) {
-    // Handle any errors that occurred during the fetch operation
-    console.error("Could not fetch data:", error);
-  }
+
 
 }
+
+
+
+async function toggleFlight() {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/toggle_recording', { 
+            method: 'POST' 
+        });
+        const data = await response.json();
+        
+        // Update local variable
+        record = data.is_recording;
+
+        // Update the UI Button
+        const btn = document.getElementById("toggleBtn");
+        if(!record){
+        startbtn.innerHTML = "Stop Recording";
+        record=true;
+        startbtn.classList.add("on");
+        }
+        else{
+            startbtn.innerHTML = "Start Recording"
+            record = false;
+            startbtn.classList.remove("on");
+        }
+    } catch (error) {
+        console.error("Failed to toggle status:", error);
+    }
+}
+
+startbtn.addEventListener("click", toggleFlight);
+
+async function updateLoop() {
+    // If you are the Host, use fetchData
+    if (isHost) {
+        if (!record) return; 
+        try {
+            const readResponse = await fetch("http://127.0.0.1:8000/read_data");
+            const histResponse = await fetch("http://127.0.0.1:8000/history?limit=200");
+            const data = await histResponse.json();
+            updateCharts(data);
+        } catch (e) { console.error("Host fetch failed", e); }
+    } 
+    // If you are a Client, use readHistory
+    else {
+        try {
+            const response = await fetch("http://127.0.0.1:8000/history?limit=200");
+            const data = await response.json();
+            updateCharts(data);
+        } catch (e) { console.error("Client history fetch failed", e); }
+    }
+}
+
+
 
 async function resetSensorData() {
     if (!confirm("Are you sure you want to clear all flight records from the database?")) return;
@@ -475,6 +497,20 @@ async function resetSensorData() {
 resetBtn.addEventListener("click", resetSensorData);
 
 
-setInterval(fetchData,1000);
+setInterval(updateLoop, 1000);
 
 
+
+/*
+TODO::
+
+|    Data    |          Details          |     Structure     |  
+--------------------------------------------------------------
+|    BMP     |      tracks altitude      |     Graph         |
+|   GPS      |  Coordinates, direction   |    Live update    |
+|Flight state|     Details Below         |   Live Update     |
+|   LSM      |    Acceleration           |   Several Graphs  |
+
+States: 0-ground, 1-ascending, 2-descending, 3-landed
+
+*/

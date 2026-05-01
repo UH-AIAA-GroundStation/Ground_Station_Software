@@ -5,7 +5,7 @@ from sensor_reader import Sensor_reader
 import time
 
 # from folder_name.file_name import class_or_function
-from database.database import SessionLocal, Altitude, Temperature, GPS
+from database.database import SessionLocal, Altitude, Temperature, GPS,SystemSettings
 
 
 
@@ -27,8 +27,10 @@ app = FastAPI(lifespan=lifespan)
 # Allow your Web App (Frontend) to access this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace "*" with your app's URL
-    allow_methods=["*"],
+    allow_origins=["http://127.0.0.1:5500", "http://localhost:5500"], # Allow your frontend
+    allow_credentials=True,
+    allow_methods=["*"], # Allows POST, GET, etc.
+    allow_headers=["*"], # Allows all headers
 )
 
 
@@ -108,6 +110,27 @@ async def get_history(limit: int = 200):
     finally:
         db.close()
 
+
+@app.post("/toggle_recording")
+async def toggle_recording():
+    # 1. Fetch the current status
+    db = SessionLocal()
+    status = db.query(SystemSettings).filter(SystemSettings.key == "is_recording").first()
+    
+    if not status:
+        # Fallback if the row doesn't exist yet
+        status = SystemSettings(key="is_recording", value=True)
+        db.add(status)
+    else:
+        # 2. Flip the boolean (True becomes False, False becomes True)
+        status.value = not status.value
+    
+    db.commit()
+    db.refresh(status)
+    
+    return {"is_recording": status.value}
+
+
 @app.post("/reset")
 async def reset_sensor_data():
     """Clears both the local sensor arrays and the PostgreSQL database."""
@@ -130,3 +153,5 @@ async def reset_sensor_data():
         return {"message": f"Database reset failed: {str(e)}", "status": "error"}
     finally:
         db.close()
+
+
