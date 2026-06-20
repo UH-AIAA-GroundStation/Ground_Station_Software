@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <LoRa.h>
 #include <SD.h>
+#include <limits> 
 
 #define CLK 13
 #define MISO 12
@@ -11,6 +12,7 @@
 #define LORA_FREQ 915E6
 #define SCALE_1000(x) ((x) / 1000.0)
 
+/// Data struct for incoming data package 
 /// 1 byte padding
 #pragma pack(push, 1)
 typedef struct LORAMessage {
@@ -41,21 +43,15 @@ typedef struct LORAMessage {
 } OutputData_t;
 #pragma pack(pop)
 
-
+/// Expected packet size
 const size_t EXPECTED_PACKET_SIZE = sizeof(OutputData_t);
 
+/// @brief Counter for received packets, used for logging and debugging
 uint32_t rxCounter = 0;
+/// @brief Struct instantiation for storing received data, used for logging and debugging
 OutputData_t rxData;
+/// @brief File handle for SD card logging, used for logging and debugging
 File flightData;
-
-uint8_t failureType = 0b10000000;  // bit 7 = debug enabled
-
-char fileName[20];
-int fileNum = 0;
-
-// optional: flush every N packets instead of every packet
-const uint16_t FLUSH_EVERY = 10;
-
 // -----------------------------
 // Failure bit meanings
 // bit 0 = SD init fail
@@ -65,7 +61,24 @@ const uint16_t FLUSH_EVERY = 10;
 // bit 4 = SD file open fail
 // bit 7 = debug enabled
 // -----------------------------
+uint8_t failureType = 0b10000000; 
+/// @brief Buffer for file name, used for logging and debugging
+char fileName[20];
+/// @brief Counter for file naming, used for logging and debugging
+int fileNum = 0;
+/// @brief Number of packets after which to flush SD file buffer, used for logging and debugging
+const uint16_t FLUSH_EVERY = 10;
+/// @brief Increment of 1 to ensure headerbyte bigger than max values of uint32_t counter (0x100000000)
+const uint64_t PACKAGE_HEADER_BYTE = std::numeric_limits<uint32_t>::max() + 1.0; 
+/// @brief Increment of 1 to ensure endbyte bigger than max values of float apogee (0x7F800000)
+const double PACKAGE_END_BYTE = std::numeric_limits<float>::max() + 1.0; 
 
+
+
+/// @brief  Reads bytes from LoRa into a provided struct pointer, returns false if not enough bytes or if read error occurs
+/// @param dataStruct Pointer to struct where data should be stored, used for logging and debugging
+/// @param len Length of data to read in bytes, used for logging and debugging
+/// @return True if read successful, false if not enough bytes or if read error occurs
 bool readBytesInto(void *dataStruct, size_t len) {
     if ((size_t)LoRa.available() < len) {
         return false;
@@ -81,6 +94,10 @@ bool readBytesInto(void *dataStruct, size_t len) {
     return true;
 }
 
+
+
+/// @brief Writes the CSV header row to the specified file
+/// @param file 
 void writeCSVHeader(File &file) {
     file.println(
         "rxCounter,failureType,"
@@ -96,6 +113,14 @@ void writeCSVHeader(File &file) {
     );
 }
 
+
+
+/// @brief Logs the provided flight data to the specified file in CSV format, includes counter and failure bits for debugging
+/// @param file File handle to log data to
+/// @param FlightData Struct containing flight data to log
+/// @param counter Counter for received packets
+/// @param failBits Bitfield indicating any failures that have occurred
+/// @note Header/End bytes may be included in the future if needed for data parsing
 void logDataToSD(File &file, const OutputData_t &FlightData, uint32_t counter, uint8_t failBits) {
     file.print(counter);                    file.print(",");
     file.print(failBits, BIN);              file.print(",");
@@ -150,80 +175,94 @@ void logDataToSD(File &file, const OutputData_t &FlightData, uint32_t counter, u
     file.println();
 }
 
+
+
+/// @brief Prints the provided flight data to the serial monitor in CSV format, includes counter and failure bits for debugging
+/// @param FlightData Struct containing flight data to print
+/// @param counter Counter for received packets
+/// @param failBits Bitfield indicating any failures that have occurred
 void printToSerial(const OutputData_t &FlightData, uint32_t counter, uint8_t failBits) {
-    Serial.print("PACKET_COUNTER:"); Serial.print(counter); Serial.print(",");
-    Serial.print("FAILURE:");        Serial.print(failBits, BIN); Serial.print(",");
-    Serial.print("TIMEMS:");         Serial.print(millis()); Serial.print(",");
+    Serial.print(PACKAGE_HEADER_BYTE); Serial.print(",");
+    Serial.print(counter); Serial.print(",");
+    Serial.print(failBits, BIN); Serial.print(",");
+    Serial.print(millis()); Serial.print(",");
 
-    Serial.print("BMP_TIME:");       Serial.print(FlightData.BMP_time); Serial.print(",");
-    Serial.print("TEMP:");           Serial.print(SCALE_1000(FlightData.BMP_temp)); Serial.print(",");
-    Serial.print("PRESS:");          Serial.print(SCALE_1000(FlightData.BMP_pressure)); Serial.print(",");
-    Serial.print("BMP_ALT:");        Serial.print(SCALE_1000(FlightData.BMP_altitude)); Serial.print(",");
+    Serial.print(FlightData.BMP_time); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BMP_temp)); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BMP_pressure)); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BMP_altitude)); Serial.print(",");
 
-    Serial.print("ADXL_TIME:");      Serial.print(FlightData.ADXL_time); Serial.print(",");
-    Serial.print("ADXL_ACCEL_X:");   Serial.print(SCALE_1000(FlightData.ADXL_accel[0])); Serial.print(",");
-    Serial.print("ADXL_ACCEL_Y:");   Serial.print(SCALE_1000(FlightData.ADXL_accel[1])); Serial.print(",");
-    Serial.print("ADXL_ACCEL_Z:");   Serial.print(SCALE_1000(FlightData.ADXL_accel[2])); Serial.print(",");
+    Serial.print(FlightData.ADXL_time); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.ADXL_accel[0])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.ADXL_accel[1])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.ADXL_accel[2])); Serial.print(",");
 
-    Serial.print("LSM_TIME:");       Serial.print(FlightData.LSM_time); Serial.print(",");
-    Serial.print("LSM_ACCEL_X:");    Serial.print(SCALE_1000(FlightData.LSM_accel[0])); Serial.print(",");
-    Serial.print("LSM_ACCEL_Y:");    Serial.print(SCALE_1000(FlightData.LSM_accel[1])); Serial.print(",");
-    Serial.print("LSM_ACCEL_Z:");    Serial.print(SCALE_1000(FlightData.LSM_accel[2])); Serial.print(",");
-    Serial.print("LSM_GYRO_X:");     Serial.print(SCALE_1000(FlightData.LSM_gyro[0])); Serial.print(",");
-    Serial.print("LSM_GYRO_Y:");     Serial.print(SCALE_1000(FlightData.LSM_gyro[1])); Serial.print(",");
-    Serial.print("LSM_GYRO_Z:");     Serial.print(SCALE_1000(FlightData.LSM_gyro[2])); Serial.print(",");
+    Serial.print(FlightData.LSM_time); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.LSM_accel[0])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.LSM_accel[1])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.LSM_accel[2])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.LSM_gyro[0])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.LSM_gyro[1])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.LSM_gyro[2])); Serial.print(",");
 
-    Serial.print("BNO_TIME:");       Serial.print(FlightData.BNO_time); Serial.print(",");
-    Serial.print("BNO_QUAT_W:");     Serial.print(SCALE_1000(FlightData.BNO_quat[0])); Serial.print(",");
-    Serial.print("BNO_QUAT_X:");     Serial.print(SCALE_1000(FlightData.BNO_quat[1])); Serial.print(",");
-    Serial.print("BNO_QUAT_Y:");     Serial.print(SCALE_1000(FlightData.BNO_quat[2])); Serial.print(",");
-    Serial.print("BNO_QUAT_Z:");     Serial.print(SCALE_1000(FlightData.BNO_quat[3])); Serial.print(",");
+    Serial.print(FlightData.BNO_time); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_quat[0])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_quat[1])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_quat[2])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_quat[3])); Serial.print(",");
 
-    Serial.print("BNO_ACCEL_X:");    Serial.print(SCALE_1000(FlightData.BNO_accel[0])); Serial.print(",");
-    Serial.print("BNO_ACCEL_Y:");    Serial.print(SCALE_1000(FlightData.BNO_accel[1])); Serial.print(",");
-    Serial.print("BNO_ACCEL_Z:");    Serial.print(SCALE_1000(FlightData.BNO_accel[2])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_accel[0])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_accel[1])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_accel[2])); Serial.print(",");
 
-    Serial.print("BNO_MAG_X:");      Serial.print(SCALE_1000(FlightData.BNO_magnet[0])); Serial.print(",");
-    Serial.print("BNO_MAG_Y:");      Serial.print(SCALE_1000(FlightData.BNO_magnet[1])); Serial.print(",");
-    Serial.print("BNO_MAG_Z:");      Serial.print(SCALE_1000(FlightData.BNO_magnet[2])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_magnet[0])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_magnet[1])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_magnet[2])); Serial.print(",");
 
-    Serial.print("BNO_EULER_X:");    Serial.print(SCALE_1000(FlightData.BNO_euler[0])); Serial.print(",");
-    Serial.print("BNO_EULER_Y:");    Serial.print(SCALE_1000(FlightData.BNO_euler[1])); Serial.print(",");
-    Serial.print("BNO_EULER_Z:");    Serial.print(SCALE_1000(FlightData.BNO_euler[2])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_euler[0])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_euler[1])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_euler[2])); Serial.print(",");
 
-    Serial.print("GPS_TIME:");       Serial.print(FlightData.GPS_time); Serial.print(",");
-    Serial.print("GPS_SAT:");        Serial.print(FlightData.GPS_sat); Serial.print(",");
-    Serial.print("LAT:");            Serial.print(SCALE_1000(FlightData.GPS_lat)); Serial.print(",");
-    Serial.print("LAT_DIR:");        Serial.print(FlightData.GPS_lat_dir); Serial.print(",");
-    Serial.print("LON:");            Serial.print(SCALE_1000(FlightData.GPS_lon)); Serial.print(",");
-    Serial.print("LON_DIR:");        Serial.print(FlightData.GPS_lon_dir); Serial.print(",");
-    Serial.print("GPS_ALT:");        Serial.print(SCALE_1000(FlightData.GPS_alt)); Serial.print(",");
+    Serial.print(FlightData.GPS_time); Serial.print(",");
+    Serial.print(FlightData.GPS_sat); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.GPS_lat)); Serial.print(",");
+    Serial.print(FlightData.GPS_lat_dir); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.GPS_lon)); Serial.print(",");
+    Serial.print(FlightData.GPS_lon_dir); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.GPS_alt)); Serial.print(",");
 
-    Serial.print("FLIGHT_STATE:");   Serial.print(FlightData.flightState); Serial.print(",");
-    Serial.print("APOGEE:");         Serial.print(FlightData.apogeeEstimate);
-
-    Serial.println();
+    Serial.print(FlightData.flightState); Serial.print(",");
+    Serial.print(FlightData.apogeeEstimate);
+    Serial.print(PACKAGE_END_BYTE); 
 }
 
+
+
+/* 
+@brief Arduino setup function, 
+initializes serial, SPI, LoRa, and SD card, 
+sets failure bits if initialization fails, and prepares file for logging.
+*/
 void setup() {
+    /// Begin serial initialization
     Serial.begin(9600);
     while (!Serial) {;}
-
     SPI.begin();
+
+    /// Pin configuration for LoRa and SD
     LoRa.setSPI(SPI);
     LoRa.setPins(CS, RST, INT);
 
+    /// Initialize SD and LoRa, set failure bits if initialization fails
     if (!SD.begin(BUILTIN_SDCARD)) {
         failureType |= (1 << 0);
-        // Serial.println("SD init failed");
     }
-
     if (!LoRa.begin(LORA_FREQ)) {
         failureType |= (1 << 1);
-        // Serial.println("LoRa init failed");
         while (1) {;}
     }
 
+    /// Find the next available file name for logging
     while (1) {
         snprintf(fileName, sizeof(fileName), "FlightData%02d.txt", fileNum);
         if (!SD.exists(fileName)) {
@@ -232,53 +271,55 @@ void setup() {
         fileNum++;
     }
 
-    // Serial.print("Using file: ");
-    // Serial.println(fileName);
-
+    /// Open the file for writing and set failure bit if failure occurs
     flightData = SD.open(fileName, FILE_WRITE);
     if (!flightData) {
         failureType |= (1 << 4);
-        // Serial.println("Failed to open log file");
         while (1) {;}
     }
 
+    /// Write the CSV header to the file
     writeCSVHeader(flightData);
     flightData.flush();
-
-    // Serial.print("Expected packet size: ");
-    // Serial.println(EXPECTED_PACKET_SIZE);
 }
 
-void loop() {
-    int packetSize = LoRa.parsePacket();
 
+/*
+@brief Arduino loop function, 
+checks for incoming LoRa packets, 
+validates and parses data, 
+logs to SD card, and prints to serial monitor, 
+sets failure bits for any errors encountered.
+*/
+void loop() {
+    /// Check for data packet and return early if no packet available
+    int packetSize = LoRa.parsePacket();
     if (packetSize <= 0) {
         return;
     }
 
-    /// AND mask to reset packet size and parsing bits in failureYype
+    /// AND mask to reset packet size and parsing bits in failureType
     failureType &= ~((1 << 2) | (1 << 3)); 
 
+    /// Check packet size and return early if size mismatch, set failure bit
     if ((size_t)packetSize != EXPECTED_PACKET_SIZE) {
         failureType |= (1 << 2);
-        Serial.print(packetSize);
-        // Serial.print(" Expected: ");
-        // Serial.println(EXPECTED_PACKET_SIZE);
         while (LoRa.available()) {
             LoRa.read();
         }
         return;
     }
 
+    /// Read packet into struct and return early if parsing fails, set failure bit
     if (!readBytesInto(&rxData, EXPECTED_PACKET_SIZE)) {
         failureType |= (1 << 3);
-        // Serial.println("Parsing data failed");
         while (LoRa.available()) {
             LoRa.read();
         }
         return;
     }
 
+    /// Log data to SD card and return early if file handle invalid, set failure bit
     if (flightData) {
         logDataToSD(flightData, rxData, rxCounter, failureType);
         if ((rxCounter % FLUSH_EVERY) == 0) {
@@ -286,7 +327,6 @@ void loop() {
         }
     } else {
         failureType |= (1 << 4);
-        // Serial.println("Log file handle invalid");
         return;
     }
 
