@@ -1,6 +1,7 @@
 import sys
 import serial
 import threading
+import time
 from serial.tools import list_ports
 
 from PyQt5 import QtWidgets  
@@ -15,6 +16,8 @@ from entry_ui import Ui_GroundAppEntry
 port = None  # Default port value
 baud = 0  # Default baud rate value
 connection_successful = False
+main_window_time = 0 # Time when main window opens
+
 
 # Constants
 START_BYTE = 0x100000000 # Packet start byte
@@ -26,6 +29,7 @@ END_BYTE = 0x7F800000 # Packet end byte
 class entryWindow(QMainWindow):
     global port
     global baud
+
     def __init__(self):
         super().__init__()
         self.ui = Ui_GroundAppEntry()
@@ -36,12 +40,12 @@ class entryWindow(QMainWindow):
         self.ui.AIAALogo.setPixmap(LogoPixmap)
         self.ui.AIAALogo.setScaledContents(True)  
 
-
         for port in list_ports.comports():
             self.ui.PortList.addItem(port.device)
 
         self.ui.ConfirmButton.clicked.connect(self.parse_port_baud)
         self.ui.ConfirmButton.clicked.connect(self.io_thread_onetime)
+
 
     # Parse selected COM port and baud rate
     def parse_port_baud(self):
@@ -66,7 +70,7 @@ class entryWindow(QMainWindow):
         try:
             self.serial_connection = serial.Serial(port, baud, timeout=0.1)
             # self.serial_connection.close()
-            self.window = MainWindow()
+            self.window = MainWindow(self.serial_connection)
             self.window.show()
             self.close()
         except serial.SerialException as e:
@@ -77,8 +81,12 @@ class entryWindow(QMainWindow):
 
 # Main window class, displays incoming data to LCD and graph
 class MainWindow(QMainWindow):
-    def __init__(self):
+    global main_window_time
+
+    def __init__(self, serial_object):
         super().__init__()
+        self.serial_connection = serial_object
+        main_window_time = time.perf_counter()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle("Ground Station Application")
@@ -93,27 +101,62 @@ class MainWindow(QMainWindow):
         global port
         global baud 
         global connection_successful
-        # try:
-        #     self.serial_connection = serial.Serial(port, baud, timeout=0.1)
-        #     connection_successful = True
-        # except serial.SerialException as e:
-        #     QtWidgets.QMessageBox.critical(self, "Connection Error", f"Failed to connect to {port} at {baud} baud.\nError: {e}")
-        #     connection_successful = False
-        #     return
         
         while connection_successful:
             try:
                 data_packet = self.serial_connection.readline().strip()
                 data_packet = data_packet.split(",")
                 if len(data_packet) > 0 and data_packet[0] == START_BYTE and data_packet[-1] == END_BYTE:
+                    data_avail_time = time.perf_counter()
                     self.parse_data_packet_to_LCD(data_packet)
+                    self.graph_data(data_packet,data_avail_time)
             except serial.SerialException as e:
-                QtWidgets.QMessageBox.critical(self, "Connection Error", f"Serial connection lost to {port} at {baud} baud.\nError: {e}")
+                QtWidgets.QMessageBox.critical(f"Error: {e}")
                 connection_successful = False
                 return
             
             if not connection_successful:
                 break
+
+
+        # Graph data values in real time
+    def load_graphing(self):
+        # Enable antialiasing for prettier plots
+        pg.setConfigOptions(antialias=True)
+        self.time_plot = []
+
+        self.altitude_plot = pg.PlotWidget()
+        self.ui.AltitudeTempGraphLayout.addWidget(self.altitude_plot)
+        self.altitude_plot.addLegend()
+        self.altitude_plot.addLegend().setLabelTextColor('#FFFFFF')
+        self.altitude_plot.setLabel('bottom', 'Time (s)')  
+        self.altitude_data = []
+        self.temp_data = []
+
+
+        self.adxl_graph = pg.PlotWidget()
+        self.ui.ADXLAccGraphXYZLayout.addWidget(self.adxl_graph)
+        self.adxl_graph.addLegend()
+        self.adxl_graph.addLegend().setLabelTextColor('#FFFFFF')
+        self.adxl_graph.setLabel('bottom', 'Time (s)')  
+        self.adxl_acc_x_data = []
+        self.adxl_acc_y_data = []
+        self.adxl_acc_z_data = []
+
+        self.lsm_graph = pg.PlotWidget()
+        self.ui.LSMAccGraph_XYZLayout.addWidget(self.lsm_graph)
+        self.lsm_graph.addLegend()
+        self.lsm_graph.addLegend().setLabelTextColor('#FFFFFF')
+        self.lsm_graph.setLabel('bottom', 'Time (s)')  
+        self.lsm_acc_x_data = []
+        self.lsm_acc_y_data = []
+        self.lsm_acc_z_data = []
+
+        self.gps_graph = pg.PlotWidget()
+        self.ui.GPSGraphLayout.addWidget(self.gps_graph)
+        self.gps_graph.showGrid(x=True, y=True)
+        self.longitude_data = []
+        self.latitude_data = []
 
 
     # Parse data value into corresponding LCD widgets
@@ -166,27 +209,20 @@ class MainWindow(QMainWindow):
         self.ui.ApogeeLCD.display(data_packet[41])
 
 
-    # Graph data values in real time
-    def load_graphing(self):
-        # Enable antialiasing for prettier plots
-        pg.setConfigOptions(antialias=True)
+    def graph_data(self, data_packet, data_packet_time):
+        self.time_plot.append(data_packet_time - main_window_time)
 
-        self.altitude_plot = pg.PlotWidget()
-        self.ui.AltitudeTempGraphLayout.addWidget(self.altitude_plot)
-        self.altitude_plot.setLabel('bottom', 'Time (s)')  
+        self.altitude_data.append(data_packet[7])
+        self.altitude_plot.plot(self.time_plot, self.altitude_data, name="Altitude Plot", pen="r")
+        self.altitude_plot.plot(self.time_plot, self.temp_data, name="Temperature Plot", pen="g")
+        self.altitude_plot.setClipToView(True)
 
-
-        self.adxl_graph = pg.PlotWidget()
-        self.ui.ADXLAccGraphXYZLayout.addWidget(self.adxl_graph)
-        self.adxl_graph.setLabel('bottom', 'Time (s)')  
-
-        self.lsm_graph = pg.PlotWidget()
-        self.ui.LSMAccGraph_XYZLayout.addWidget(self.lsm_graph)
-        self.lsm_graph.setLabel('bottom', 'Time (s)')  
-
-        self.gps_graph = pg.PlotWidget()
-        self.ui.GPSGraphLayout.addWidget(self.gps_graph)
-        self.gps_graph.showGrid(x=True, y=True)
+        self.adxl_acc_x_data.append(data_packet[9])
+        self.adxl_acc_y_data.append(data_packet[10])
+        self.adxl_acc_z_data.append(data_packet[11])
+        self.adxl_graph.plot(self.time_plot, self.adxl_acc_x_data, name="ADXL Accel X", pen="r")
+        self.adxl_graph.plot(self.time_plot, self.adxl_acc_y_data, name="ADXL Accel Y", pen="g")
+        self.adxl_graph.plot(self.time_plot, self.adxl_acc_z_data, name="ADXL Accel Z", pen="c")
 
 
             
