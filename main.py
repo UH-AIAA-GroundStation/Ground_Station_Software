@@ -1,23 +1,31 @@
 import sys
 import serial
+import threading
 from serial.tools import list_ports
 
 from PyQt5 import QtWidgets  
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QIcon, QPixmap
+import pyqtgraph as pg
 
 from ground_app_ui import Ui_MainWindow
 from entry_ui import Ui_GroundAppEntry
 
 
 port = None  # Default port value
-baud = None  # Default baud rate value
-EARTH_RADIUS = 6371000  # meters, used for distance calculations for GPS Graph
-UI_FILE = "Ground_Station_App_Layout.ui"  # Path to your Qt Designer UI file
+baud = 0  # Default baud rate value
+connection_successful = False
+
+# Constants
+START_BYTE = 0x100000000 # Packet start byte
+END_BYTE = 0x7F800000 # Packet end byte
 
 
-
+# Entry window class, prompts user for COM port and baud rate, 
+# attempts to open serial connection, and opens main window if successful
 class entryWindow(QMainWindow):
+    global port
+    global baud
     def __init__(self):
         super().__init__()
         self.ui = Ui_GroundAppEntry()
@@ -33,8 +41,9 @@ class entryWindow(QMainWindow):
             self.ui.PortList.addItem(port.device)
 
         self.ui.ConfirmButton.clicked.connect(self.parse_port_baud)
+        self.ui.ConfirmButton.clicked.connect(self.io_thread_onetime)
 
-
+    # Parse selected COM port and baud rate
     def parse_port_baud(self):
         # Get the selected port and baud rate from the entry dialog
         port = str(self.ui.PortList.currentText())
@@ -48,17 +57,25 @@ class entryWindow(QMainWindow):
             QtWidgets.QMessageBox.warning(self, "Input Error", "Please enter a valid baud rate.")
             return
         
-        # Attempt to open the serial connection and handle any exceptions
+
+    # Attempt to open the serial connection for one time
+    # If successful, open the main window and close the entry window
+    # If unsuccessful, show an error message
+    def io_thread_onetime(self):
+        global connection_successful
         try:
             self.serial_connection = serial.Serial(port, baud, timeout=0.1)
+            # self.serial_connection.close()
             self.window = MainWindow()
             self.window.show()
-            self.close()  
+            self.close()
         except serial.SerialException as e:
-            QtWidgets.QMessageBox.critical(self, "Connection Error", f"Failed to connect to {port} at {baud} baud.\nError: {e}")
-
+            connection_successful = False
+            QtWidgets.QMessageBox.critical(f"Error: {e}")
         
 
+
+# Main window class, displays incoming data to LCD and graph
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -66,6 +83,110 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
         self.setWindowTitle("Ground Station Application")
         self.setWindowIcon(QIcon('cropped-aiaaweblogo.png'))
+        self.load_graphing()
+
+        threading.Thread(target=self.io_thread_function, daemon=True).start()
+
+
+    # Read from serial port and strip data packet
+    def io_thread_function(self):
+        global port
+        global baud 
+        global connection_successful
+        # try:
+        #     self.serial_connection = serial.Serial(port, baud, timeout=0.1)
+        #     connection_successful = True
+        # except serial.SerialException as e:
+        #     QtWidgets.QMessageBox.critical(self, "Connection Error", f"Failed to connect to {port} at {baud} baud.\nError: {e}")
+        #     connection_successful = False
+        #     return
+        
+        while connection_successful:
+            try:
+                data_packet = self.serial_connection.readline().strip()
+                data_packet = data_packet.split(",")
+                if len(data_packet) > 0 and data_packet[0] == START_BYTE and data_packet[-1] == END_BYTE:
+                    self.parse_data_packet_to_LCD(data_packet)
+            except serial.SerialException as e:
+                QtWidgets.QMessageBox.critical(self, "Connection Error", f"Serial connection lost to {port} at {baud} baud.\nError: {e}")
+                connection_successful = False
+                return
+            
+            if not connection_successful:
+                break
+
+
+    # Parse data value into corresponding LCD widgets
+    def parse_data_packet_to_LCD(self, data_packet):
+        self.ui.BMPTimeLCD.display(data_packet[4])
+        self.ui.TemperatureLCD.display(data_packet[5])
+        self.ui.PressureLCD.display(data_packet[6])
+        self.ui.BMPAltitudeLCD.display(data_packet[7])
+
+        self.ui.ADXLTimeLCD.display(data_packet[8])
+        self.ui.ADXLAccelLCD_X.display(data_packet[9])
+        self.ui.ADXLAccelLCD_Y.display(data_packet[10])
+        self.ui.ADXLAccelLCD_Z.display(data_packet[11])
+
+        self.ui.LSMTimeLCD.display(data_packet[12])
+        self.ui.LSMAccelLCD_X.display(data_packet[13])
+        self.ui.LSMAccelLCD_Y.display(data_packet[14])
+        self.ui.LSMAccelLCD_Z.display(data_packet[15])
+        self.ui.LSMGyroLCD_X.display(data_packet[16])
+        self.ui.LSMGyroLCD_Y.display(data_packet[17])
+        self.ui.LSMGyroLCD_Z.display(data_packet[18])
+
+        self.ui.BNOTimeLCD.display(data_packet[19])
+        self.ui.BNOQuarLCD_W.display(data_packet[20])
+        self.ui.BNOQuarLCD_X.display(data_packet[21])
+        self.ui.BNOQuarLCD_Y.display(data_packet[22])
+        self.ui.BNOQuarLCD_Z.display(data_packet[23])
+        
+        self.ui.BNOAccelLCD_X.display(data_packet[24])
+        self.ui.BNOAccelLCD_Y.display(data_packet[25])
+        self.ui.BNOAccelLCD_Z.display(data_packet[26])
+
+        self.ui.BNOMagLCD_X.display(data_packet[27])
+        self.ui.BNOMagLCD_Y.display(data_packet[28])
+        self.ui.BNOMagLCD_Z.display(data_packet[29])
+        
+        self.ui.BNOEulerLCD_X.display(data_packet[30])
+        self.ui.BNOEulerLCD_Y.display(data_packet[31])
+        self.ui.BNOEulerLCD_Z.display(data_packet[32])
+
+        self.ui.GPSTimeLCD.display(data_packet[33])
+        self.ui.SattelitesLCD.display(data_packet[34])
+        self.ui.LatitudeLCD.display(data_packet[35])
+        self.ui.LatDirectionLCD.display(data_packet[36])
+        self.ui.LongitudeLCD.display(data_packet[37])
+        self.ui.LongDirectionLCD.display(data_packet[38])
+        self.ui.GPSAltitudeLCD.display(data_packet[39])
+
+        self.ui.FlightStateLCD.display(data_packet[40])
+        self.ui.ApogeeLCD.display(data_packet[41])
+
+
+    # Graph data values in real time
+    def load_graphing(self):
+        # Enable antialiasing for prettier plots
+        pg.setConfigOptions(antialias=True)
+
+        self.altitude_plot = pg.PlotWidget()
+        self.ui.AltitudeTempGraphLayout.addWidget(self.altitude_plot)
+        self.altitude_plot.setLabel('bottom', 'Time (s)')  
+
+
+        self.adxl_graph = pg.PlotWidget()
+        self.ui.ADXLAccGraphXYZLayout.addWidget(self.adxl_graph)
+        self.adxl_graph.setLabel('bottom', 'Time (s)')  
+
+        self.lsm_graph = pg.PlotWidget()
+        self.ui.LSMAccGraph_XYZLayout.addWidget(self.lsm_graph)
+        self.lsm_graph.setLabel('bottom', 'Time (s)')  
+
+        self.gps_graph = pg.PlotWidget()
+        self.ui.GPSGraphLayout.addWidget(self.gps_graph)
+        self.gps_graph.showGrid(x=True, y=True)
 
 
             

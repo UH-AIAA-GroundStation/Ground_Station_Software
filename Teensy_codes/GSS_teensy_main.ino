@@ -187,53 +187,55 @@ void printToSerial(const OutputData_t &FlightData, uint32_t counter, uint8_t fai
     Serial.print(failBits, BIN); Serial.print(",");
     Serial.print(millis()); Serial.print(",");
 
-    Serial.print(FlightData.BMP_time); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BMP_temp)); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BMP_pressure)); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BMP_altitude)); Serial.print(",");
+    Serial.print(FlightData.BMP_time); Serial.print(","); //4
+    Serial.print(SCALE_1000(FlightData.BMP_temp)); Serial.print(","); //5
+    Serial.print(SCALE_1000(FlightData.BMP_pressure)); Serial.print(",");//6
+    Serial.print(SCALE_1000(FlightData.BMP_altitude)); Serial.print(",");//7
 
-    Serial.print(FlightData.ADXL_time); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.ADXL_accel[0])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.ADXL_accel[1])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.ADXL_accel[2])); Serial.print(",");
+    Serial.print(FlightData.ADXL_time); Serial.print(",");//8
+    Serial.print(SCALE_1000(FlightData.ADXL_accel[0])); Serial.print(",");//9 x
+    Serial.print(SCALE_1000(FlightData.ADXL_accel[1])); Serial.print(",");//10 y
+    Serial.print(SCALE_1000(FlightData.ADXL_accel[2])); Serial.print(",");//11 z
 
-    Serial.print(FlightData.LSM_time); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.LSM_accel[0])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.LSM_accel[1])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.LSM_accel[2])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.LSM_gyro[0])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.LSM_gyro[1])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.LSM_gyro[2])); Serial.print(",");
+    Serial.print(FlightData.LSM_time); Serial.print(","); //12
+    Serial.print(SCALE_1000(FlightData.LSM_accel[0])); Serial.print(",");//13 x
+    Serial.print(SCALE_1000(FlightData.LSM_accel[1])); Serial.print(",");//14 y
+    Serial.print(SCALE_1000(FlightData.LSM_accel[2])); Serial.print(",");//15 z
+    Serial.print(SCALE_1000(FlightData.LSM_gyro[0])); Serial.print(",");//16 x
+    Serial.print(SCALE_1000(FlightData.LSM_gyro[1])); Serial.print(",");//17 y
+    Serial.print(SCALE_1000(FlightData.LSM_gyro[2])); Serial.print(",");//18 z
 
-    Serial.print(FlightData.BNO_time); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BNO_quat[0])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BNO_quat[1])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BNO_quat[2])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BNO_quat[3])); Serial.print(",");
+    Serial.print(FlightData.BNO_time); Serial.print(",");//19
+    Serial.print(SCALE_1000(FlightData.BNO_quat[0])); Serial.print(",");//20 w
+    Serial.print(SCALE_1000(FlightData.BNO_quat[1])); Serial.print(",");//21 x
+    Serial.print(SCALE_1000(FlightData.BNO_quat[2])); Serial.print(",");//22 y
+    Serial.print(SCALE_1000(FlightData.BNO_quat[3])); Serial.print(",");//23 z
 
-    Serial.print(SCALE_1000(FlightData.BNO_accel[0])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BNO_accel[1])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BNO_accel[2])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_accel[0])); Serial.print(",");//24 x
+    Serial.print(SCALE_1000(FlightData.BNO_accel[1])); Serial.print(",");//25 y
+    Serial.print(SCALE_1000(FlightData.BNO_accel[2])); Serial.print(",");//26 z
 
-    Serial.print(SCALE_1000(FlightData.BNO_magnet[0])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BNO_magnet[1])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BNO_magnet[2])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_magnet[0])); Serial.print(",");//27 x
+    Serial.print(SCALE_1000(FlightData.BNO_magnet[1])); Serial.print(",");//28 y
+    Serial.print(SCALE_1000(FlightData.BNO_magnet[2])); Serial.print(",");//29 z
 
-    Serial.print(SCALE_1000(FlightData.BNO_euler[0])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BNO_euler[1])); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.BNO_euler[2])); Serial.print(",");
+    Serial.print(SCALE_1000(FlightData.BNO_euler[0])); Serial.print(",");//30 x
+    Serial.print(SCALE_1000(FlightData.BNO_euler[1])); Serial.print(",");//31 y
+    Serial.print(SCALE_1000(FlightData.BNO_euler[2])); Serial.print(",");//32 z
 
-    Serial.print(FlightData.GPS_time); Serial.print(",");
-    Serial.print(FlightData.GPS_sat); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.GPS_lat)); Serial.print(",");
-    Serial.print(FlightData.GPS_lat_dir); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.GPS_lon)); Serial.print(",");
-    Serial.print(FlightData.GPS_lon_dir); Serial.print(",");
-    Serial.print(SCALE_1000(FlightData.GPS_alt)); Serial.print(",");
+    Serial.print(FlightData.GPS_time); Serial.print(",");//33 
+    Serial.print(FlightData.GPS_sat); Serial.print(",");//34
+    Serial.print(SCALE_1000(FlightData.GPS_lat)); Serial.print(",");//35
+    Serial.print(FlightData.GPS_lat_dir); Serial.print(",");//36
+    Serial.print(SCALE_1000(FlightData.GPS_lon)); Serial.print(",");//37
+    Serial.print(FlightData.GPS_lon_dir); Serial.print(",");//38
+    Serial.print(SCALE_1000(FlightData.GPS_alt)); Serial.print(",");//39
 
-    Serial.print(FlightData.flightState); Serial.print(",");
-    Serial.print(FlightData.apogeeEstimate);
+    Serial.print(FlightData.flightState); Serial.print(",");//40
+    Serial.print(FlightData.apogeeEstimate); Serial.print(",");
     Serial.print(PACKAGE_END_BYTE); 
+
+    Serial.println();
 }
 
 
