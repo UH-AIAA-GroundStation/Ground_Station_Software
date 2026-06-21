@@ -7,6 +7,7 @@ from serial.tools import list_ports
 from PyQt5 import QtWidgets  
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtCore import pyqtSignal, QObject
 import pyqtgraph as pg
 
 from ground_app_ui import Ui_MainWindow
@@ -17,11 +18,19 @@ port = None  # Default port value
 baud = 0  # Default baud rate value
 connection_successful = False
 main_window_time = 0 # Time when main window opens
+connection_sem = threading.Semaphore(1)
+serial_success = False
+data_packet = []
 
 
 # Constants
 START_BYTE = 0x100000000 # Packet start byte
 END_BYTE = 0x7F800000 # Packet end byte
+
+
+
+class signal_to_LCD(QObject):
+    print_lcd_signal = pyqtSignal(list, float)
 
 
 # Entry window class, prompts user for COM port and baud rate, 
@@ -67,25 +76,30 @@ class entryWindow(QMainWindow):
     # If unsuccessful, show an error message
     def io_thread_onetime(self):
         global connection_successful
+        connection_sem.acquire()
         try:
             self.serial_connection = serial.Serial(port, baud, timeout=0.1)
-            # self.serial_connection.close()
-            self.window = MainWindow(self.serial_connection)
-            self.window.show()
+            self.serial_connection.close()
+            serial_success = True
             self.close()
         except serial.SerialException as e:
             connection_successful = False
-            QtWidgets.QMessageBox.critical(f"Error: {e}")
+            serial_success = False
+            QtWidgets.QMessageBox.critical(self, "Error", f"Error: {e}")
+
+        connection_sem.release()
         
+        if serial_success:
+            self.window = MainWindow()
+            self.window.show()
 
 
 # Main window class, displays incoming data to LCD and graph
 class MainWindow(QMainWindow):
-    global main_window_time
-
-    def __init__(self, serial_object):
+    def __init__(self):
+        global main_window_time
         super().__init__()
-        self.serial_connection = serial_object
+        # self.serial_connection = serial_object
         main_window_time = time.perf_counter()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -93,33 +107,14 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon('cropped-aiaaweblogo.png'))
         self.load_graphing()
 
+        self.print_to_LCD = signal_to_LCD()
+        self.print_to_LCD.print_lcd_signal.connect(self.main_thread_connection)
+
         threading.Thread(target=self.io_thread_function, daemon=True).start()
+        threading.Thread(target=self.extract_data_packet, daemon=True).start()
 
 
-    # Read from serial port and strip data packet
-    def io_thread_function(self):
-        global port
-        global baud 
-        global connection_successful
-        
-        while connection_successful:
-            try:
-                data_packet = self.serial_connection.readline().strip()
-                data_packet = data_packet.split(",")
-                if len(data_packet) > 0 and data_packet[0] == START_BYTE and data_packet[-1] == END_BYTE:
-                    data_avail_time = time.perf_counter()
-                    self.parse_data_packet_to_LCD(data_packet)
-                    self.graph_data(data_packet,data_avail_time)
-            except serial.SerialException as e:
-                QtWidgets.QMessageBox.critical(f"Error: {e}")
-                connection_successful = False
-                return
-            
-            if not connection_successful:
-                break
-
-
-        # Graph data values in real time
+    # Graph data values in real time
     def load_graphing(self):
         # Enable antialiasing for prettier plots
         pg.setConfigOptions(antialias=True)
@@ -157,6 +152,54 @@ class MainWindow(QMainWindow):
         self.gps_graph.showGrid(x=True, y=True)
         self.longitude_data = []
         self.latitude_data = []
+
+
+    def main_thread_connection(self, data_packet, data_avail_time):
+        self.parse_data_packet_to_LCD(data_packet)
+        self.graph_data(data_packet, data_avail_time)
+
+
+    # Read from serial port and strip data packet
+    def io_thread_function(self):
+        global port
+        global baud 
+        global connection_successful
+        global data_packet
+        connection_sem.acquire()
+        try:
+            self.serial_connection = serial.Serial(port, baud, timeout=0.1)
+            connection_successful = True
+        except serial.SerialException as e:
+            connection_successful = False
+            # print(self, "Error", f"Error: {e}")
+        
+        
+        while connection_successful:
+            try:
+                data_packet = self.serial_connection.readline().strip()
+                data_packet = data_packet.split(",")
+                if len(data_packet) > 0 and data_packet[0] == START_BYTE and data_packet[-1] == END_BYTE:
+                    data_avail_time = time.perf_counter()
+                    self.print_to_LCD.print_lcd_signal.emit(data_packet,data_avail_time)
+            except serial.SerialException as e:
+                # print(self, "Error", f"Error: {e}")
+                connection_successful = False
+                return
+            
+            if not connection_successful:
+                break
+
+        connection_sem.release()
+
+
+    def extract_data_packet(self):
+        global data_packet
+        while connection_successful: 
+            
+
+            if not connection_successful:
+                break
+
 
 
     # Parse data value into corresponding LCD widgets
@@ -210,19 +253,48 @@ class MainWindow(QMainWindow):
 
 
     def graph_data(self, data_packet, data_packet_time):
+        # Apend time of current packet
         self.time_plot.append(data_packet_time - main_window_time)
 
+        # Altitude and Temperature plot
         self.altitude_data.append(data_packet[7])
-        self.altitude_plot.plot(self.time_plot, self.altitude_data, name="Altitude Plot", pen="r")
-        self.altitude_plot.plot(self.time_plot, self.temp_data, name="Temperature Plot", pen="g")
-        self.altitude_plot.setClipToView(True)
+        altitude_curve = self.altitude_plot.plot(self.time_plot, self.altitude_data, name="Altitude Plot", pen="r")
+        temp_curve = self.altitude_plot.plot(self.time_plot, self.temp_data, name="Temperature Plot", pen="g")
+        altitude_curve.setClipToView(True)
+        temp_curve.setClipToView(True)
+        # 5 data points in, plot 3 points (min-mid-max)
+        altitude_curve.setDownsampling(ds=5, auto=True, method='peak')
+        temp_curve.setDownsampling(ds=5, auto=True, method='peak')
 
+        # ADXL X/Y/Z plot (red, green, cyan)
         self.adxl_acc_x_data.append(data_packet[9])
         self.adxl_acc_y_data.append(data_packet[10])
         self.adxl_acc_z_data.append(data_packet[11])
-        self.adxl_graph.plot(self.time_plot, self.adxl_acc_x_data, name="ADXL Accel X", pen="r")
-        self.adxl_graph.plot(self.time_plot, self.adxl_acc_y_data, name="ADXL Accel Y", pen="g")
-        self.adxl_graph.plot(self.time_plot, self.adxl_acc_z_data, name="ADXL Accel Z", pen="c")
+        adxl_x_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_x_data, name="ADXL Accel X", pen="r")
+        adxl_y_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_y_data, name="ADXL Accel Y", pen="g")
+        adxl_z_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_z_data, name="ADXL Accel Z", pen="c")
+        adxl_x_curve.setClipToView(True)
+        adxl_y_curve.setClipToView(True)
+        adxl_z_curve.setClipToView(True)
+        # 5 data points in, plot 3 points (min-mid-max)
+        adxl_x_curve.setDownsampling(ds=5, auto=True, method='peak')
+        adxl_y_curve.setDownsampling(ds=5, auto=True, method='peak')
+        adxl_z_curve.setDownsampling(ds=5, auto=True, method='peak')
+
+        # LSM X/Y/Z plot (red, green, cyan)
+        self.lsm_acc_x_data.append(data_packet[9])
+        self.lsm_acc_y_data.append(data_packet[10])
+        self.lsm_acc_z_data.append(data_packet[11])
+        lsm_x_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_x_data, name="ADXL Accel X", pen="r")
+        lsm_y_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_y_data, name="ADXL Accel Y", pen="g")
+        lsm_z_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_z_data, name="ADXL Accel Z", pen="c")
+        lsm_x_curve.setClipToView(True)
+        lsm_y_curve.setClipToView(True)
+        lsm_z_curve.setClipToView(True)
+        # 5 data points in, plot 3 points (min-mid-max)
+        lsm_x_curve.setDownsampling(ds=5, auto=True, method='peak')
+        lsm_y_curve.setDownsampling(ds=5, auto=True, method='peak')
+        lsm_z_curve.setDownsampling(ds=5, auto=True, method='peak')
 
 
             
