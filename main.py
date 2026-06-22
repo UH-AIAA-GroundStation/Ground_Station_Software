@@ -2,6 +2,7 @@ import sys
 import serial
 import threading
 import time
+import utm
 from serial.tools import list_ports
 
 from PyQt5 import QtWidgets  
@@ -111,7 +112,6 @@ class MainWindow(QMainWindow):
         self.print_to_LCD.print_lcd_signal.connect(self.main_thread_connection)
 
         threading.Thread(target=self.io_thread_function, daemon=True).start()
-        threading.Thread(target=self.extract_data_packet, daemon=True).start()
 
 
     # Graph data values in real time
@@ -190,16 +190,6 @@ class MainWindow(QMainWindow):
                 break
 
         connection_sem.release()
-
-
-    def extract_data_packet(self):
-        global data_packet
-        while connection_successful: 
-            
-
-            if not connection_successful:
-                break
-
 
 
     # Parse data value into corresponding LCD widgets
@@ -295,6 +285,16 @@ class MainWindow(QMainWindow):
         lsm_x_curve.setDownsampling(ds=5, auto=True, method='peak')
         lsm_y_curve.setDownsampling(ds=5, auto=True, method='peak')
         lsm_z_curve.setDownsampling(ds=5, auto=True, method='peak')
+
+        # Graph GPS
+        # x, y = utm.from_latlon(input_lat, input_lon)
+        x, y = utm.from_latlon(data_packet[35], data_packet[37])
+        self.longitude_data.append(x)
+        self.latitude_data.append(y)
+        gps_curve = self.gps_graph.plot(self.longitude_data, self.latitude_data, name="GPS")
+        gps_curve.setClipToView(True)
+        # 5 data points in, plot 3 points (min-mid-max)
+        gps_curve.setDownsampling(ds=5, auto=True, method='peak')
 
 
             
