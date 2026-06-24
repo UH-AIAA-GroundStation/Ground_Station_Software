@@ -171,6 +171,7 @@ class MainWindow(QMainWindow):
             connection_successful = True
         except serial.SerialException as e:
             connection_successful = False
+            connection_sem.release()
             # print(self, "Error", f"Error: {e}")
         
         
@@ -288,9 +289,10 @@ class MainWindow(QMainWindow):
 
         # Graph GPS
         # x, y = utm.from_latlon(input_lat, input_lon)
-        x, y = utm.from_latlon(data_packet[35], data_packet[37])
-        self.longitude_data.append(x)
-        self.latitude_data.append(y)
+        # Return (Easting, Northing, Zone Number, Zone Letter)
+        gps_2d = utm.from_latlon(data_packet[35], data_packet[37])
+        self.longitude_data.append(gps_2d[0])
+        self.latitude_data.append(gps_2d[1])
         gps_curve = self.gps_graph.plot(self.longitude_data, self.latitude_data, name="GPS")
         gps_curve.setClipToView(True)
         # 5 data points in, plot 3 points (min-mid-max)
