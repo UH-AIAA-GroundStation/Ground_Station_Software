@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
 
         
 
-        self.gps_curve = self.plot.plot(longitude, latitude, name="GPS", pen="g")
+        self.gps_curve = self.plot.plot(longitude, latitude, name="GPS", pen="g", symbol='o', symbolSize=5)
         self.gps_curve.setClipToView(True)
         self.gps_curve.setDownsampling(ds=3, auto=True, method='peak')
 

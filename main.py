@@ -17,6 +17,8 @@ from entry_ui import Ui_GroundAppEntry
 
 port = None  # Default port value
 baud = 0  # Default baud rate value
+launch_zone = 0 # Launch zone for GPS graph
+TEXAS_STATE_ZONES = (13,14,15) # Available zones in Texas
 connection_successful = False
 main_window_time = 0 # Time when main window opens
 connection_sem = threading.Semaphore(1)
@@ -53,22 +55,29 @@ class entryWindow(QMainWindow):
         for port in list_ports.comports():
             self.ui.PortList.addItem(port.device)
 
-        self.ui.ConfirmButton.clicked.connect(self.parse_port_baud)
+        for zone in TEXAS_STATE_ZONES:
+            self.ui.ZoneList.addItem(str(zone))
+
+        self.ui.ConfirmButton.clicked.connect(self.parse_entry_arguments)
         self.ui.ConfirmButton.clicked.connect(self.io_thread_onetime)
 
 
-    # Parse selected COM port and baud rate
-    def parse_port_baud(self):
+    # Parse selected COM port, baud rate, and launch zone
+    def parse_entry_arguments(self):
         # Get the selected port and baud rate from the entry dialog
         port = str(self.ui.PortList.currentText())
         baud = int(self.ui.BaudList.currentText())
+        launch_zone = int(self.ui.ZoneList.currentText())
 
         # Validate the port and baud rate values
         if not port:
-            QtWidgets.QMessageBox.warning(self, "Input Error", "Please select a valid COM port.")
+            QtWidgets.QMessageBox.warning(self, "Input Error", "Please choose a valid COM port.")
             return
         if not isinstance(baud, int):
-            QtWidgets.QMessageBox.warning(self, "Input Error", "Please enter a valid baud rate.")
+            QtWidgets.QMessageBox.warning(self, "Input Error", "Please choose a valid baud rate.")
+            return
+        if not isinstance(launch_zone, int):
+            QtWidgets.QMessageBox.warning(self, "Input Error", "Please choose a valid zone.")
             return
         
 
@@ -290,10 +299,10 @@ class MainWindow(QMainWindow):
         # Graph GPS
         # x, y = utm.from_latlon(input_lat, input_lon)
         # Return (Easting, Northing, Zone Number, Zone Letter)
-        gps_2d = utm.from_latlon(data_packet[35], data_packet[37])
+        gps_2d = utm.from_latlon(data_packet[35], data_packet[37], force_zone_number=launch_zone)
         self.longitude_data.append(gps_2d[0])
         self.latitude_data.append(gps_2d[1])
-        gps_curve = self.gps_graph.plot(self.longitude_data, self.latitude_data, name="GPS")
+        gps_curve = self.gps_graph.plot(self.longitude_data, self.latitude_data, name="GPS", symbol='o')
         gps_curve.setClipToView(True)
         # 5 data points in, plot 3 points (min-mid-max)
         gps_curve.setDownsampling(ds=5, auto=True, method='peak')
