@@ -50,7 +50,7 @@ class entryWindow(QMainWindow):
         self.setWindowIcon(QIcon('cropped-aiaaweblogo.png'))
         LogoPixmap = QPixmap('cropped-aiaaweblogo.png')
         self.ui.AIAALogo.setPixmap(LogoPixmap)
-        self.ui.AIAALogo.setScaledContents(True)  
+        self.ui.AIAALogo.setScaledContents(True) 
 
         for port in list_ports.comports():
             self.ui.PortList.addItem(port.device)
@@ -129,6 +129,7 @@ class MainWindow(QMainWindow):
         pg.setConfigOptions(antialias=True)
         self.time_plot = []
 
+        # Altitude and temp graph and data setup
         self.altitude_plot = pg.PlotWidget()
         self.ui.AltitudeTempGraphLayout.addWidget(self.altitude_plot)
         self.altitude_plot.addLegend()
@@ -137,7 +138,7 @@ class MainWindow(QMainWindow):
         self.altitude_data = []
         self.temp_data = []
 
-
+        # ADXL graph and data setup
         self.adxl_graph = pg.PlotWidget()
         self.ui.ADXLAccGraphXYZLayout.addWidget(self.adxl_graph)
         self.adxl_graph.addLegend()
@@ -147,6 +148,7 @@ class MainWindow(QMainWindow):
         self.adxl_acc_y_data = []
         self.adxl_acc_z_data = []
 
+        # LSM graph and data setup
         self.lsm_graph = pg.PlotWidget()
         self.ui.LSMAccGraph_XYZLayout.addWidget(self.lsm_graph)
         self.lsm_graph.addLegend()
@@ -156,9 +158,15 @@ class MainWindow(QMainWindow):
         self.lsm_acc_y_data = []
         self.lsm_acc_z_data = []
 
+        # GPS graph and data setup
         self.gps_graph = pg.PlotWidget()
         self.ui.GPSGraphLayout.addWidget(self.gps_graph)
         self.gps_graph.showGrid(x=True, y=True)
+        
+        self.mouse_hover_label = pg.TextItem(text="", color="w", anchor=(0.1,1))
+        self.gps_graph.addItem(self.mouse_hover_label)
+        self.gps_graph.scene().sigMouseMoved.connect(self.gps_mouse_hover)
+
         self.longitude_data = []
         self.latitude_data = []
 
@@ -175,6 +183,7 @@ class MainWindow(QMainWindow):
         global connection_successful
         global data_packet
         connection_sem.acquire()
+        # Attempt to connect to MCU
         try:
             self.serial_connection = serial.Serial(port, baud, timeout=0.1)
             connection_successful = True
@@ -183,7 +192,7 @@ class MainWindow(QMainWindow):
             connection_sem.release()
             # print(self, "Error", f"Error: {e}")
         
-        
+        # If serial connection is good, read data, start timer, and print to LCD 
         while connection_successful:
             try:
                 data_packet = self.serial_connection.readline().strip()
@@ -251,7 +260,16 @@ class MainWindow(QMainWindow):
         self.ui.FlightStateLCD.display(data_packet[40])
         self.ui.ApogeeLCD.display(data_packet[41])
 
+    
+    # Signal to enable mouse with x,y coordinates when hovering on GPS graph
+    def gps_mouse_hover(self,pos):
+        if self.gps_graph.sceneBoundingRect().contains(pos):
+            mouse_point = self.gps_graph.plotItem.vb.mapSceneToView(pos)
+            self.mouse_hover_label.setText(f"X: {mouse_point.x():.2f}, Y: {mouse_point.y():.2f}")
+            self.mouse_hover_label.setPos(mouse_point)
 
+
+    # Setup data points, graph name/style, Downsampling
     def graph_data(self, data_packet, data_packet_time):
         # Apend time of current packet
         self.time_plot.append(data_packet_time - main_window_time)
