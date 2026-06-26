@@ -14,13 +14,11 @@ import pyqtgraph as pg
 from ground_app_ui import Ui_MainWindow
 from entry_ui import Ui_GroundAppEntry
 
-
+# Helper globals
 port = None  # Default port value
 baud = 0  # Default baud rate value
 launch_zone = 0 # Launch zone for GPS graph
-TEXAS_STATE_ZONES = (13,14,15) # Available zones in Texas
 connection_successful = False
-main_window_time = 0 # Time when main window opens
 connection_sem = threading.Semaphore(1)
 serial_success = False
 data_packet = []
@@ -29,7 +27,7 @@ data_packet = []
 # Constants
 START_BYTE = 0x100000000 # Packet start byte
 END_BYTE = 0x7F800000 # Packet end byte
-
+TEXAS_STATE_ZONES = (13,14,15) # Available zones in Texas
 
 
 class signal_to_LCD(QObject):
@@ -107,10 +105,9 @@ class entryWindow(QMainWindow):
 # Main window class, displays incoming data to LCD and graph
 class MainWindow(QMainWindow):
     def __init__(self):
-        global main_window_time
         super().__init__()
         # Start timer when main window opens
-        main_window_time = time.perf_counter()
+        self.main_window_time = time.perf_counter()
         # Setup UI
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -122,6 +119,8 @@ class MainWindow(QMainWindow):
         # Print data to LCDs and graph from worker thread to main thread
         self.print_to_LCD = signal_to_LCD()
         self.print_to_LCD.print_lcd_signal.connect(self.main_thread_connection)
+        # Reset graph button
+        self.ui.ResetGraphButton.clicked.connect(self.reset_graph)
 
 
     # Setting up data graph
@@ -274,10 +273,11 @@ class MainWindow(QMainWindow):
     # Setup data points, graph name/style, Downsampling
     def graph_data(self, data_packet, data_packet_time):
         # Apend time of current packet
-        self.time_plot.append(data_packet_time - main_window_time)
+        self.time_plot.append(data_packet_time - self.main_window_time)
 
         # Altitude and Temperature plot
         self.altitude_data.append(data_packet[7])
+        self.temp_data.append(data_packet[5])
         altitude_curve = self.altitude_plot.plot(self.time_plot, self.altitude_data, name="Altitude Plot", pen="r")
         temp_curve = self.altitude_plot.plot(self.time_plot, self.temp_data, name="Temperature Plot", pen="g")
         altitude_curve.setClipToView(True)
@@ -302,9 +302,9 @@ class MainWindow(QMainWindow):
         adxl_z_curve.setDownsampling(ds=5, auto=True, method='peak')
 
         # LSM X/Y/Z plot (red, green, cyan)
-        self.lsm_acc_x_data.append(data_packet[9])
-        self.lsm_acc_y_data.append(data_packet[10])
-        self.lsm_acc_z_data.append(data_packet[11])
+        self.lsm_acc_x_data.append(data_packet[13])
+        self.lsm_acc_y_data.append(data_packet[14])
+        self.lsm_acc_z_data.append(data_packet[15])
         lsm_x_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_x_data, name="ADXL Accel X", pen="r")
         lsm_y_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_y_data, name="ADXL Accel Y", pen="g")
         lsm_z_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_z_data, name="ADXL Accel Z", pen="c")
@@ -327,6 +327,23 @@ class MainWindow(QMainWindow):
         # 5 data points in, plot 3 points (min-mid-max)
         gps_curve.setDownsampling(ds=5, auto=True, method='peak')
 
+
+    # Reset timer and data of graph to reset graph
+    def reset_graph(self):
+        # Reset initial graph timer
+        self.time_plot.clear()
+        self.main_window_time = time.perf_counter()
+        # Reset data for graph
+        self.altitude_data.clear()
+        self.temp_data.clear()
+        self.adxl_acc_x_data.clear()
+        self.adxl_acc_y_data.clear()
+        self.adxl_acc_z_data.clear()
+        self.lsm_acc_x_data.clear()
+        self.lsm_acc_y_data.clear()
+        self.lsm_acc_z_data.clear()
+        self.longitude_data.clear()
+        self.latitude_data.clear()
 
             
 
