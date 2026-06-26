@@ -44,6 +44,7 @@ class entryWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        # Setup UI
         self.ui = Ui_GroundAppEntry()
         self.ui.setupUi(self)
         self.setWindowTitle("Ground Station Application")
@@ -51,13 +52,12 @@ class entryWindow(QMainWindow):
         LogoPixmap = QPixmap('cropped-aiaaweblogo.png')
         self.ui.AIAALogo.setPixmap(LogoPixmap)
         self.ui.AIAALogo.setScaledContents(True) 
-
+        # Add items to lists
         for port in list_ports.comports():
             self.ui.PortList.addItem(port.device)
-
         for zone in TEXAS_STATE_ZONES:
             self.ui.ZoneList.addItem(str(zone))
-
+        # Button click trigger
         self.ui.ConfirmButton.clicked.connect(self.parse_entry_arguments)
         self.ui.ConfirmButton.clicked.connect(self.io_thread_onetime)
 
@@ -98,7 +98,7 @@ class entryWindow(QMainWindow):
             QtWidgets.QMessageBox.critical(self, "Error", f"Error: {e}")
 
         connection_sem.release()
-        
+        # Open main window upon successfull connection
         if serial_success:
             self.window = MainWindow()
             self.window.show()
@@ -109,21 +109,22 @@ class MainWindow(QMainWindow):
     def __init__(self):
         global main_window_time
         super().__init__()
-        # self.serial_connection = serial_object
+        # Start timer when main window opens
         main_window_time = time.perf_counter()
+        # Setup UI
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle("Ground Station Application")
         self.setWindowIcon(QIcon('cropped-aiaaweblogo.png'))
         self.load_graphing()
-
+        # Start I/O thread and get data
+        threading.Thread(target=self.io_thread_function, daemon=True).start()
+        # Print data to LCDs and graph from worker thread to main thread
         self.print_to_LCD = signal_to_LCD()
         self.print_to_LCD.print_lcd_signal.connect(self.main_thread_connection)
 
-        threading.Thread(target=self.io_thread_function, daemon=True).start()
 
-
-    # Graph data values in real time
+    # Setting up data graph
     def load_graphing(self):
         # Enable antialiasing for prettier plots
         pg.setConfigOptions(antialias=True)
@@ -170,7 +171,8 @@ class MainWindow(QMainWindow):
         self.longitude_data = []
         self.latitude_data = []
 
-
+    
+    # Connect worker thread to main thread to perform printing and graphing
     def main_thread_connection(self, data_packet, data_avail_time):
         self.parse_data_packet_to_LCD(data_packet)
         self.graph_data(data_packet, data_avail_time)
@@ -190,7 +192,7 @@ class MainWindow(QMainWindow):
         except serial.SerialException as e:
             connection_successful = False
             connection_sem.release()
-            # print(self, "Error", f"Error: {e}")
+            # print(self, "Error", f"Error: {e}") # Debug
         
         # If serial connection is good, read data, start timer, and print to LCD 
         while connection_successful:
@@ -201,7 +203,7 @@ class MainWindow(QMainWindow):
                     data_avail_time = time.perf_counter()
                     self.print_to_LCD.print_lcd_signal.emit(data_packet,data_avail_time)
             except serial.SerialException as e:
-                # print(self, "Error", f"Error: {e}")
+                # print(self, "Error", f"Error: {e}") # Debug
                 connection_successful = False
                 return
             
@@ -331,12 +333,8 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     # Create the application
     app = QApplication(sys.argv)
-
-    # Create the main window
+    # Entry window
     entry_window = entryWindow()
-
-    # Show the window
     entry_window.show()
-
     # Start event loop
     sys.exit(app.exec_())
