@@ -198,7 +198,7 @@ class MainWindow(QMainWindow):
             try:
                 data_packet = self.serial_connection.readline().strip()
                 data_packet = data_packet.split(",")
-                if len(data_packet) > 0 and data_packet[0] == START_BYTE and data_packet[-1] == END_BYTE:
+                if len(data_packet) > 0 and data_packet[0] == START_BYTE:
                     data_avail_time = time.perf_counter()
                     self.print_to_LCD.print_lcd_signal.emit(data_packet,data_avail_time)
             except serial.SerialException as e:

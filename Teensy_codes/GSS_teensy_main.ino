@@ -2,15 +2,21 @@
 #include <LoRa.h>
 #include <SD.h>
 #include <limits> 
+#include <AceCRC.h>
 
+/// Pins definition
 #define CLK 13
 #define MISO 12
 #define MOSI 11
 #define CS 10
 #define INT 2
 #define RST 9
+/// Lora Frequency
 #define LORA_FREQ 915E6
+/// Data constant scaling 
 #define SCALE_1000(x) ((x) / 1000.0)
+/// Name space to use pycrc CRC16-CCITT
+using namespace ace_crc::crc16ccitt_nibblem;
 
 /// Data struct for incoming data package 
 /// 1 byte padding
@@ -43,11 +49,12 @@ typedef struct LORAMessage {
 } OutputData_t;
 #pragma pack(pop)
 
-/// Expected packet size
+/// @brief Expected packet size from Lora of the Flight Comp
 const size_t EXPECTED_PACKET_SIZE = sizeof(OutputData_t);
-
 /// @brief Counter for received packets, used for logging and debugging
 uint32_t rxCounter = 0;
+/// @brief Time from the moment of receiving data from the Lora
+uint32_t packet_time = 0;
 /// @brief Struct instantiation for storing received data, used for logging and debugging
 OutputData_t rxData;
 /// @brief File handle for SD card logging, used for logging and debugging
@@ -68,10 +75,17 @@ char fileName[20];
 int fileNum = 0;
 /// @brief Number of packets after which to flush SD file buffer, used for logging and debugging
 const uint16_t FLUSH_EVERY = 10;
-/// @brief Increment of 1 to ensure headerbyte bigger than max values of uint32_t counter (0x100000000)
-const uint64_t PACKAGE_HEADER_BYTE = std::numeric_limits<uint32_t>::max() + 1.0; 
-/// @brief Increment of 1 to ensure endbyte bigger than max values of float apogee (0x7F800000)
-const double PACKAGE_END_BYTE = std::numeric_limits<float>::max() + 1.0; 
+/// @brief Increment of 1 to ensure headerbyte bigger than max values of uint32_t counter 
+/// (0x100000000 = std::numeric_limits<uint32_t>::max() + 1.0;)
+const uint64_t PACKAGE_HEADER_BYTE = 0x100000000;
+/// @brief Serial data packet storage to calculate checksum
+uint8_t serial_packet[
+    sizeof(PACKAGE_HEADER_BYTE)
+    + sizeof(rxCounter)
+    + sizeof(failureType)
+    + sizeof(packet_time)
+    + sizeof(OutputData_t)
+] = {0};
 
 
 
@@ -95,6 +109,38 @@ bool readBytesInto(void *dataStruct, size_t len) {
 }
 
 
+/// @brief Calculate check sum of the data packet sending to the app
+/// @param buffer Data packet storage
+/// @param counter Packet counter
+/// @param FailureType Failure type redundant checks
+/// @param packet_time Time when the data was read from the Lora
+/// @param data_packet Data packet on the receiving side
+/// @return CRC16
+uint16_t pack_packet(uint8_t *buffer, uint32_t &counter, uint8_t &FailureType, uint32_t &packet_time, OutputData_t &data_packet) 
+{
+    size_t index = 0;
+    memcpy(&buffer[index], &PACKAGE_HEADER_BYTE, sizeof(PACKAGE_HEADER_BYTE));
+    index += sizeof(PACKAGE_HEADER_BYTE);
+    /// Pack counter 
+    memcpy(&buffer[index], &counter, sizeof(counter));
+    index += sizeof(counter);
+    /// Pack FailureType
+    memcpy(&buffer[index], &FailureType, sizeof(FailureType));
+    index += sizeof(FailureType);
+    /// Pack packet time
+    memcpy(&buffer[index], &packet_time, sizeof(packet_time));
+    index += sizeof(packet_time);
+    /// Pack data packet
+    memcpy(&buffer[index], &data_packet, sizeof(data_packet));
+    index += sizeof(data_packet);
+    /// Calculate and append CRC16
+    crc_t crc = crc_init();
+    crc = crc_update(crc, buffer, index);
+    crc = crc_finalize(crc);
+
+    return crc;
+}
+
 
 /// @brief Writes the CSV header row to the specified file
 /// @param file 
@@ -114,14 +160,13 @@ void writeCSVHeader(File &file) {
 }
 
 
-
 /// @brief Logs the provided flight data to the specified file in CSV format, includes counter and failure bits for debugging
 /// @param file File handle to log data to
 /// @param FlightData Struct containing flight data to log
 /// @param counter Counter for received packets
 /// @param failBits Bitfield indicating any failures that have occurred
 /// @note Header/End bytes may be included in the future if needed for data parsing
-void logDataToSD(File &file, const OutputData_t &FlightData, uint32_t counter, uint8_t failBits) {
+void logDataToSD(File &file, const OutputData_t &FlightData, uint32_t &counter, uint8_t &failBits) {
     file.print(counter);                    file.print(",");
     file.print(failBits, BIN);              file.print(",");
 
@@ -176,16 +221,15 @@ void logDataToSD(File &file, const OutputData_t &FlightData, uint32_t counter, u
 }
 
 
-
 /// @brief Prints the provided flight data to the serial monitor in CSV format, includes counter and failure bits for debugging
 /// @param FlightData Struct containing flight data to print
 /// @param counter Counter for received packets
 /// @param failBits Bitfield indicating any failures that have occurred
-void printToSerial(const OutputData_t &FlightData, uint32_t counter, uint8_t failBits) {
-    Serial.print(PACKAGE_HEADER_BYTE); Serial.print(",");
-    Serial.print(counter); Serial.print(",");
-    Serial.print(failBits, BIN); Serial.print(",");
-    Serial.print(millis()); Serial.print(",");
+void printToSerial(const OutputData_t &FlightData, uint32_t &counter, uint8_t &failBits, uint32_t &packet_time, uint16_t &checksum) {
+    Serial.print(PACKAGE_HEADER_BYTE); Serial.print(",");//0
+    Serial.print(counter); Serial.print(",");//1
+    Serial.print(failBits, BIN); Serial.print(",");//2
+    Serial.print(packet_time); Serial.print(",");//3
 
     Serial.print(FlightData.BMP_time); Serial.print(","); //4
     Serial.print(SCALE_1000(FlightData.BMP_temp)); Serial.print(","); //5
@@ -232,8 +276,9 @@ void printToSerial(const OutputData_t &FlightData, uint32_t counter, uint8_t fai
     Serial.print(SCALE_1000(FlightData.GPS_alt)); Serial.print(",");//39
 
     Serial.print(FlightData.flightState); Serial.print(",");//40
-    Serial.print(FlightData.apogeeEstimate); Serial.print(",");
-    Serial.print(PACKAGE_END_BYTE); 
+    Serial.print(FlightData.apogeeEstimate); Serial.print(",");//41
+    Serial.print((uint8_t)(checksum >> 8)); Serial.print(","); //42
+    Serial.print((uint8_t)(checksum));//43
 
     Serial.println();
 }
@@ -298,6 +343,8 @@ void loop() {
     int packetSize = LoRa.parsePacket();
     if (packetSize <= 0) {
         return;
+    } else {
+        packet_time = millis();
     }
 
     /// AND mask to reset packet size and parsing bits in failureType
@@ -331,10 +378,12 @@ void loop() {
         failureType |= (1 << 4);
         return;
     }
-
-    printToSerial(rxData, rxCounter, failureType);
-
+    /// Calculate crc16 of the data packet being sent over the serial line
+    uint16_t crc16 = pack_packet(serial_packet, rxCounter, failureType, packet_time, rxData);
+    /// Print the data packet to serial line so the app can pick them up
+    printToSerial(rxData, rxCounter, failureType, packet_time, crc16);
+    /// Increment counter
     rxCounter++;
-
+    /// Small delay so packet is not repeated (can be optimized more)
     delay(100);
 }
