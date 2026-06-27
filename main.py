@@ -31,6 +31,8 @@ data_packet = []
 
 # Constants
 START_BYTE = 0x100000000 # Packet start byte
+EXPECTED_PAYLOAD_SIZE = 121 # Total Payload size in bytes (Refer to Teensy serial_packet)
+EXPECTED_PACKET_SIZE = EXPECTED_PAYLOAD_SIZE + 2 # Payload size + CRC16 in bytes
 TEXAS_STATE_ZONES = (13,14,15) # Available zones in Texas
 
 
@@ -94,6 +96,7 @@ class entryWindow(QMainWindow):
     # If unsuccessful, show an error message
     def io_thread_onetime(self):
         global connection_successful
+        global serial_success
         connection_sem.acquire()
         try:
             self.serial_connection = serial.Serial(port, baud, timeout=0.1)
@@ -183,6 +186,104 @@ class MainWindow(QMainWindow):
         self.longitude_data = []
         self.latitude_data = []
 
+
+    # Unpack data packet to helper values and sensors data
+    def unpack_packet(self, payload):
+        offset = 0
+        # Unpack data packet
+        header, counter, failureType, packet_time = struct.unpack_from("<QIBI", payload, offset)
+        offset += struct.calcsize("<QIBI")
+
+        # Unpack sensors data
+        # BMP
+        BMP_time, BMP_temp, BMP_pressure, BMP_altitude = struct.unpack_from(
+            "<Qhhh",
+            payload,
+            offset
+        )
+        offset += struct.calcsize("<Qhhh")
+
+        # LSM
+        LSM_time = struct.unpack_from("<Q", payload, offset)[0]
+        offset += 8
+
+        LSM_accel = struct.unpack_from("<3h", payload, offset)
+        offset += struct.calcsize("<3h")
+
+        LSM_gyro = struct.unpack_from("<3h", payload, offset)
+        offset += struct.calcsize("<3h")
+
+        # ADXL
+        ADXL_time = struct.unpack_from("<Q", payload, offset)[0]
+        offset += 8
+
+        ADXL_accel = struct.unpack_from("<3h", payload, offset)
+        offset += struct.calcsize("<3h")
+
+        # BNO
+        BNO_time = struct.unpack_from("<Q", payload, offset)[0]
+        offset += 8
+
+        BNO_quat = struct.unpack_from("<4h", payload, offset)
+        offset += struct.calcsize("<4h")
+
+        BNO_euler = struct.unpack_from("<3h", payload, offset)
+        offset += struct.calcsize("<3h")
+
+        BNO_magnet = struct.unpack_from("<3h", payload, offset)
+        offset += struct.calcsize("<3h")
+
+        BNO_accel = struct.unpack_from("<3h", payload, offset)
+        offset += struct.calcsize("<3h")
+
+        # GPS
+        GPS_time = struct.unpack_from("<Q", payload, offset)[0]
+        offset += 8
+
+        GPS_sat = struct.unpack_from("<b", payload, offset)[0]
+        offset += 1
+
+        GPS_lon, GPS_lat = struct.unpack_from("<hh", payload, offset)
+        offset += struct.calcsize("<hh")
+
+        GPS_lon_dir = struct.unpack_from("<c", payload, offset)[0].decode()
+        offset += 1
+
+        GPS_lat_dir = struct.unpack_from("<c", payload, offset)[0].decode()
+        offset += 1
+
+        GPS_alt = struct.unpack_from("<h", payload, offset)[0]
+        offset += 2
+
+        # Flight
+        flightState = struct.unpack_from("<B", payload, offset)[0]
+        offset += 1
+
+        apogeeEstimate = struct.unpack_from("<f", payload, offset)[0]
+        offset += 4
+
+        return [
+            header, counter, failureType, packet_time,
+            # BMP
+            BMP_time, BMP_temp / 1000.0, BMP_pressure / 1000.0, BMP_altitude / 1000.0,
+            # ADXL
+            ADXL_time, ADXL_accel[0] / 1000.0, ADXL_accel[1] / 1000.0, ADXL_accel[2] / 1000.0,
+            # LSM
+            LSM_time, LSM_accel[0] / 1000.0, LSM_accel[1] / 1000.0, LSM_accel[2] / 1000.0,
+            LSM_gyro[0] / 1000.0, LSM_gyro[1] / 1000.0, LSM_gyro[2] / 1000.0,
+            # BNO
+            BNO_time, BNO_quat[0] / 1000.0, BNO_quat[1] / 1000.0,
+            BNO_quat[2] / 1000.0, BNO_quat[3] / 1000.0,
+            BNO_accel[0] / 1000.0, BNO_accel[1] / 1000.0, BNO_accel[2] / 1000.0,
+            BNO_magnet[0] / 1000.0, BNO_magnet[1] / 1000.0, BNO_magnet[2] / 1000.0,
+            BNO_euler[0] / 1000.0, BNO_euler[1] / 1000.0, BNO_euler[2] / 1000.0,
+            # GPS
+            GPS_time, GPS_sat, GPS_lat / 100000.0, GPS_lat_dir,
+            GPS_lon / 100000.0, GPS_lon_dir, GPS_alt / 1000.0,
+            # Flight info
+            flightState,
+            apogeeEstimate
+        ]
     
     # Connect worker thread to main thread to perform printing and graphing
     def main_thread_connection(self, data_packet, data_avail_time):
@@ -209,10 +310,21 @@ class MainWindow(QMainWindow):
             try:
                 # Read a data line and unpack header, data, crc16
                 line = self.serial_connection.readline().decode(errors="ignore").strip()
-                data_packet = bytes.fromhex(line)
-                payload = data_packet[:-2]
-                rx_crc = (data_packet[-2] << 8) | data_packet[-1]
+                try:
+                    packet = bytes.fromhex(line)
+                    if len(packet) != EXPECTED_PACKET_SIZE:
+                        continue
+                except ValueError:
+                    continue
+                if len(packet) < 2:
+                    continue
+
+                payload = packet[:-2]
+                rx_crc = (packet[-2] << 8) | packet[-1]
                 # Read from byte 0 of the payload to get header byte at position 0 in a return tuple (<Q = little-endian,uint64_t)
+                # if len is not valid, skip packet
+                if len(payload) < 8:
+                    continue
                 header_payload = struct.unpack_from("<Q", payload, 0)[0] 
                 
                 if len(payload) > 0 and header_payload == START_BYTE:
@@ -229,14 +341,20 @@ class MainWindow(QMainWindow):
 
                     # Verify checksum from the data packet 
                     if calc_checksum == rx_crc:
+                        # Unpack payload, if len is invalid, skip packet
+                        if len(payload) != EXPECTED_PAYLOAD_SIZE:
+                            continue
+                        data_packet = self.unpack_packet(payload)
+
                         data_avail_time = time.perf_counter()
                         self.print_to_LCD.print_lcd_signal.emit(data_packet,data_avail_time)
-                    else: # Bad checksum (something wrong with the data packet)
-                        return
+                    else: # Bad checksum, skip packet
+                        continue
                     
             except serial.SerialException as e:
                 # print(self, "Error", f"Error: {e}") # Debug
                 connection_successful = False
+                connection_sem.release()
                 return
             
             if not connection_successful:
@@ -338,9 +456,9 @@ class MainWindow(QMainWindow):
         self.lsm_acc_x_data.append(float(data_packet[13]))
         self.lsm_acc_y_data.append(float(data_packet[14]))
         self.lsm_acc_z_data.append(float(data_packet[15]))
-        lsm_x_curve = self.lsm_graph.plot(self.time_plot, self.lsm_acc_x_data, name="ADXL Accel X", pen="r")
-        lsm_y_curve = self.lsm_graph.plot(self.time_plot, self.lsm_acc_y_data, name="ADXL Accel Y", pen="g")
-        lsm_z_curve = self.lsm_graph.plot(self.time_plot, self.lsm_acc_z_data, name="ADXL Accel Z", pen="c")
+        lsm_x_curve = self.lsm_graph.plot(self.time_plot, self.lsm_acc_x_data, name="LSM Accel X", pen="r")
+        lsm_y_curve = self.lsm_graph.plot(self.time_plot, self.lsm_acc_y_data, name="LSM Accel Y", pen="g")
+        lsm_z_curve = self.lsm_graph.plot(self.time_plot, self.lsm_acc_z_data, name="LSM Accel Z", pen="c")
         lsm_x_curve.setClipToView(True)
         lsm_y_curve.setClipToView(True)
         lsm_z_curve.setClipToView(True)
@@ -349,7 +467,7 @@ class MainWindow(QMainWindow):
         lsm_y_curve.setDownsampling(ds=5, auto=True, method='peak')
         lsm_z_curve.setDownsampling(ds=5, auto=True, method='peak')
 
-        # Graph GPS (long = x, lat = y)
+        # Graph GPS (Easting = x, Northing = y)
         # x, y = utm.from_latlon(input_lat, input_lon)
         # Return (Easting, Northing, Zone Number, Zone Letter)
         gps_2d = utm.from_latlon(float(data_packet[35]), float(data_packet[37]), force_zone_number=launch_zone)
