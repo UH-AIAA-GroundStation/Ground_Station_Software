@@ -45,6 +45,25 @@ pyinstaller --onefile --add-data ".\cropped-aiaaweblogo.png;." .\main.py
 
 ```bash
 # 2nd method: Running the script:
+
+# Assuming no virtual environment is created yet
+python -m venv venv
+
+# Update pip
+python.exe -m pip install --upgrade pip
+
+# Install dependencies
+pip install pyserial
+pip install utm
+pip install pyqt5
+pip install pyqtgraph
+
+# For dev
+pip install PyQt5Designer
+# To access to the designer
+.\venv\Lib\site-packages\QtDesigner\designer.exe
+
+# At the project root
 python main.py
 ```
 
