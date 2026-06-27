@@ -132,6 +132,7 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
         self.setWindowTitle("Ground Station Application")
         self.setWindowIcon(QIcon('cropped-aiaaweblogo.png'))
+        self.graph_paused = False
         self.load_graphing()
         # Start I/O thread and get data
         threading.Thread(target=self.io_thread_function, daemon=True).start()
@@ -142,6 +143,8 @@ class MainWindow(QMainWindow):
         self.ui.ResetGraphButton.clicked.connect(self.reset_graph)
         # Reset serial connection
         self.ui.ResetSerialButton.clicked.connect(self.reset_serial_connection)
+        # Pause graph button
+        self.ui.PauseGraphButton.clicked.connect(self.toggle_graph_pause)
 
 
     # Setting up data graph
@@ -294,7 +297,8 @@ class MainWindow(QMainWindow):
     # Connect worker thread to main thread to perform printing and graphing
     def main_thread_connection(self, data_packet, data_avail_time):
         self.parse_data_packet_to_LCD(data_packet)
-        self.graph_data(data_packet, data_avail_time)
+        if not self.graph_paused:
+            self.graph_data(data_packet, data_avail_time)
 
 
     # Read from serial port and strip data packet
@@ -529,6 +533,16 @@ class MainWindow(QMainWindow):
             )
             connection_sem.release()
         connection_sem.release()
+
+
+    # Toggle pause/resume graphing
+    def toggle_graph_pause(self):
+        self.graph_paused = not self.graph_paused
+
+        if self.graph_paused:
+            self.ui.PauseGraphButton.setText("Resume Graph")
+        else:
+            self.ui.PauseGraphButton.setText("Pause Graph")
 
             
 
