@@ -1,16 +1,20 @@
+# Author: Thanh Pham (Tony Pham)
+
+# Import lib
 import sys
 import serial
 import threading
 import time
 import utm
 from serial.tools import list_ports
-
+import subprocess
 from PyQt5 import QtWidgets  
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import pyqtSignal, QObject
 import pyqtgraph as pg
 
+# File import
 from ground_app_ui import Ui_MainWindow
 from entry_ui import Ui_GroundAppEntry
 
@@ -30,8 +34,11 @@ END_BYTE = 0x7F800000 # Packet end byte
 TEXAS_STATE_ZONES = (13,14,15) # Available zones in Texas
 
 
+
+# Main thread signaling to print data to LCD
 class signal_to_LCD(QObject):
     print_lcd_signal = pyqtSignal(list, float)
+
 
 
 # Entry window class, prompts user for COM port and baud rate, 
@@ -100,6 +107,7 @@ class entryWindow(QMainWindow):
         if serial_success:
             self.window = MainWindow()
             self.window.show()
+
 
 
 # Main window class, displays incoming data to LCD and graph
@@ -196,11 +204,29 @@ class MainWindow(QMainWindow):
         # If serial connection is good, read data, start timer, and print to LCD 
         while connection_successful:
             try:
+                # Read a data line
                 data_packet = self.serial_connection.readline().strip()
                 data_packet = data_packet.split(",")
                 if len(data_packet) > 0 and data_packet[0] == START_BYTE:
-                    data_avail_time = time.perf_counter()
-                    self.print_to_LCD.print_lcd_signal.emit(data_packet,data_avail_time)
+
+                    # Checksum recalculation
+                    input_data_packet = "".join(data_packet)
+                    result = subprocess.run(
+                        ["pycrc", "--model", "crc-16-ccitt", "--check-string", input_data_packet],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                    )
+                    # Get the raw checksum values without flag, \n, error, ...
+                    checksum_packet = result.stdout.strip()
+
+                    # Verify checksum from the data packet 
+                    if (checksum_packet >> 8) == data_packet[42] and checksum_packet == data_packet[43]:
+                        data_avail_time = time.perf_counter()
+                        self.print_to_LCD.print_lcd_signal.emit(data_packet,data_avail_time)
+                    else: # Bad checksum (something wrong with the data packet)
+                        return
+                    
             except serial.SerialException as e:
                 # print(self, "Error", f"Error: {e}") # Debug
                 connection_successful = False

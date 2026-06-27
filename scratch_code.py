@@ -1,3 +1,6 @@
+# Code to test GPS utm coordinates coversion, checksum calculation
+
+
 import pyqtgraph.examples
 # pyqtgraph.examples.run()
 from scratch_ui import Ui_MainWindow
@@ -6,6 +9,7 @@ import serial
 import threading
 import time
 from serial.tools import list_ports
+import subprocess
 
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow
@@ -46,6 +50,9 @@ latitude = []
 
 # counter = 0
 
+data = ["1","2","3","4","5","6","7","8","9","e"]
+data_size = 9
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -64,7 +71,7 @@ class MainWindow(QMainWindow):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_data)
-        self.timer.start(100)
+        self.timer.start(1000)
 
         # self.curve_1 = self.plot.plot(data_x, data_y_1, name="Plot 1", pen="r")
         # self.curve_2 = self.plot.plot(data_x, data_y_2, name="Plot 2", pen="g")
@@ -76,66 +83,84 @@ class MainWindow(QMainWindow):
 
         
 
-        self.gps_curve = self.plot.plot(longitude, latitude, name="GPS", pen="g", symbol='o', symbolSize=5)
-        self.gps_curve.setClipToView(True)
-        self.gps_curve.setDownsampling(ds=3, auto=True, method='peak')
+        # self.gps_curve = self.plot.plot(longitude, latitude, name="GPS", pen="g", symbol='o', symbolSize=5)
+        # self.gps_curve.setClipToView(True)
+        # self.gps_curve.setDownsampling(ds=3, auto=True, method='peak')
 
 
     def update_data(self):
+        global data
+        global data_size
+
+        input_string = "".join(data)
+        
+        result = subprocess.run(
+            ["pycrc", "--model", "crc-16-ccitt", "--check-string", input_string],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        checksum = result.stdout.strip()
+        print(f"Calculated Checksum: {checksum}")
+
+        
+
+
         # global x, y_1, y_2
-        global flag
-        global data_x
-        global data_y_1, data_y_2
-        global longitude_init
-        global latitude_init
-        # global normalize_x, normalize_y
-        # global normalize_x_init, normalize_y_init
-        # global counter
-        global start_x
-        global start_y
+        # global flag
+        # global data_x
+        # global data_y_1, data_y_2
+        # global longitude_init
+        # global latitude_init
+        # # global normalize_x, normalize_y
+        # # global normalize_x_init, normalize_y_init
+        # # global counter
+        # global start_x
+        # global start_y
 
-        # Closest constant to get to Austin from Houston
-        # longitude_init -= 0.0051
-        # latitude_init += 0.00115
+        # # Closest constant to get to Austin from Houston
+        # # longitude_init -= 0.0051
+        # # latitude_init += 0.00115
 
-        longitude_init += (longitude_target - longitude_init) * 0.01
-        latitude_init += (latitude_target - latitude_init) * 0.01
+        # longitude_init += (longitude_target - longitude_init) * 0.01
+        # latitude_init += (latitude_target - latitude_init) * 0.01
 
-        # Force zone so coordinates don't get reset when zone changes
-        data_packet = utm.from_latlon(latitude_init,longitude_init, force_zone_number=zone)
+        # # Force zone so coordinates don't get reset when zone changes
+        # data_packet = utm.from_latlon(latitude_init,longitude_init, force_zone_number=zone)
 
-        print(f"Easting: {data_packet[0]}")
-        print(f"Northing: {data_packet[1]}")
+        # print(f"Easting: {data_packet[0]}")
+        # print(f"Northing: {data_packet[1]}")
 
-        x = data_packet[0] - start_x
-        y = data_packet[1] - start_y
+        # x = data_packet[0] - start_x
+        # y = data_packet[1] - start_y
 
-        if longitude_init <= longitude_target and latitude_init >= latitude_target:
-            return
+        # if longitude_init <= longitude_target and latitude_init >= latitude_target:
+        #     return
 
-        # if counter == 1: # 1st run (no normalization values yet)
-        #     normalize_x_init = data_packet[0]
-        #     normalize_y_init = data_packet[1]
-        #     normalize_x = data_packet[0]/normalize_x_init
-        #     normalize_y = data_packet[1]/normalize_y_init
-        # elif counter >= 2: # 2nd run (normalization values exist)
-        #     normalize_x = data_packet[0]/normalize_x_init
-        #     normalize_y = data_packet[1]/normalize_y_init
+        # # if counter == 1: # 1st run (no normalization values yet)
+        # #     normalize_x_init = data_packet[0]
+        # #     normalize_y_init = data_packet[1]
+        # #     normalize_x = data_packet[0]/normalize_x_init
+        # #     normalize_y = data_packet[1]/normalize_y_init
+        # # elif counter >= 2: # 2nd run (normalization values exist)
+        # #     normalize_x = data_packet[0]/normalize_x_init
+        # #     normalize_y = data_packet[1]/normalize_y_init
 
-        # counter += 1
+        # # counter += 1
 
-        longitude.append(x)
-        latitude.append(y)
+        # longitude.append(x)
+        # latitude.append(y)
 
-        # print(f"Real long: {longitude_init}")
-        # print(f"Real lat: {latitude_init}")
+        # # print(f"Real long: {longitude_init}")
+        # # print(f"Real lat: {latitude_init}")
 
-        # print(normalize_x)
-        # print(normalize_y)
+        # # print(normalize_x)
+        # # print(normalize_y)
 
-        print(data_packet[2])
+        # print(data_packet[2])
 
-        self.gps_curve.setData(longitude, latitude)
+        # self.gps_curve.setData(longitude, latitude)
 
 
         # if flag == 0:
