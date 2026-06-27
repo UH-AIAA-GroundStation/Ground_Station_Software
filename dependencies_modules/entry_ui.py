@@ -186,4 +186,4 @@ class Ui_GroundAppEntry(object):
         self.BaudList.setItemText(13, _translate("GroundAppEntry", "921600"))
         self.BaudLabel.setText(_translate("GroundAppEntry", "Baudrate"))
         self.PortLabel.setText(_translate("GroundAppEntry", "COM Port"))
-        self.LaunchZoneLabel.setText(_translate("GroundAppEntry", "Launch zone"))
+        self.LaunchZoneLabel.setText(_translate("GroundAppEntry", "Fire Zone"))

@@ -3,7 +3,7 @@
 
 import pyqtgraph.examples
 # pyqtgraph.examples.run()
-from scratch_ui import Ui_MainWindow
+from test_stuff.scratch_ui import Ui_MainWindow
 import sys
 import serial
 import threading

@@ -16,8 +16,8 @@ import pyqtgraph as pg
 import struct
 
 # File import
-from ground_app_ui import Ui_MainWindow
-from entry_ui import Ui_GroundAppEntry
+from dependencies_modules.ground_app_ui import Ui_MainWindow
+from dependencies_modules.entry_ui import Ui_GroundAppEntry
 
 # Helper globals
 port = None  # Default port value
@@ -102,6 +102,11 @@ class entryWindow(QMainWindow):
             self.serial_connection = serial.Serial(port, baud, timeout=0.1)
             self.serial_connection.close()
             serial_success = True
+            QtWidgets.QMessageBox.information(
+                self,
+                "Success",
+                "Serial connection successful!"
+            )
             self.close()
         except serial.SerialException as e:
             connection_successful = False
@@ -285,6 +290,7 @@ class MainWindow(QMainWindow):
             apogeeEstimate
         ]
     
+
     # Connect worker thread to main thread to perform printing and graphing
     def main_thread_connection(self, data_packet, data_avail_time):
         self.parse_data_packet_to_LCD(data_packet)
@@ -300,7 +306,7 @@ class MainWindow(QMainWindow):
         try:
             self.serial_connection = serial.Serial(port, baud, timeout=0.1)
             connection_successful = True
-        except serial.SerialException as e:
+        except serial.SerialException:
             connection_successful = False
             connection_sem.release()
             # print(self, "Error", f"Error: {e}") # Debug
@@ -481,9 +487,6 @@ class MainWindow(QMainWindow):
 
     # Reset timer and data of graph to reset graph
     def reset_graph(self):
-        # Reset initial graph timer
-        self.time_plot.clear()
-        self.main_window_time = time.perf_counter()
         # Reset data for graph
         self.altitude_data.clear()
         self.temp_data.clear()
@@ -496,19 +499,34 @@ class MainWindow(QMainWindow):
         self.longitude_data.clear()
         self.latitude_data.clear()
 
+        # Reset initial graph timer to 0
+        self.time_plot.clear()
+        self.main_window_time = time.perf_counter()
+
 
     # Reset serial connection
     def reset_serial_connection(self):
         global connection_successful
         # Disconnect 
+        connection_successful = False
         self.serial_connection.close()
         # Reconnect
         connection_sem.acquire()
         try:
             self.serial_connection = serial.Serial(port, baud, timeout=0.1)
             connection_successful = True
+            QtWidgets.QMessageBox.information(
+                self,
+                "Success",
+                "Serial reconnection successful!"
+            )
         except serial.SerialException as e:
             connection_successful = False
+            QtWidgets.QMessageBox.information(
+                self,
+                "Failure",
+                f"Error: {e}"
+            )
             connection_sem.release()
         connection_sem.release()
 
