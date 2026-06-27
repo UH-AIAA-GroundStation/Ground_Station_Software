@@ -138,7 +138,10 @@ uint16_t pack_packet(uint8_t *buffer, uint32_t &counter, uint8_t &FailureType, u
     crc = crc_update(crc, buffer, index);
     crc = crc_finalize(crc);
 
-    return crc;
+    buffer[index++] = (uint8_t)(crc >> 8);
+    buffer[index++] = (uint8_t)crc;
+
+    return index
 }
 
 
@@ -221,67 +224,81 @@ void logDataToSD(File &file, const OutputData_t &FlightData, uint32_t &counter, 
 }
 
 
+void printHexPacket(const uint8_t *buffer, size_t len)
+{
+    for (size_t i = 0; i < len; i++)
+    {
+        if (buffer[i] < 0x10)
+        {
+            Serial.print("0");
+        }
+        Serial.print(buffer[i], HEX);
+    }
+    Serial.println();
+}
+
+
 /// @brief Prints the provided flight data to the serial monitor in CSV format, includes counter and failure bits for debugging
 /// @param FlightData Struct containing flight data to print
 /// @param counter Counter for received packets
 /// @param failBits Bitfield indicating any failures that have occurred
-void printToSerial(const OutputData_t &FlightData, uint32_t &counter, uint8_t &failBits, uint32_t &packet_time, uint16_t &checksum) {
-    Serial.print(PACKAGE_HEADER_BYTE); Serial.print(",");//0
-    Serial.print(counter); Serial.print(",");//1
-    Serial.print(failBits, BIN); Serial.print(",");//2
-    Serial.print(packet_time); Serial.print(",");//3
+// void printToSerial(const OutputData_t &FlightData, uint32_t &counter, uint8_t &failBits, uint32_t &packet_time, uint16_t &checksum) {
+//     Serial.print(PACKAGE_HEADER_BYTE); Serial.print(",");//0
+//     Serial.print(counter); Serial.print(",");//1
+//     Serial.print(failBits, BIN); Serial.print(",");//2
+//     Serial.print(packet_time); Serial.print(",");//3
 
-    Serial.print(FlightData.BMP_time); Serial.print(","); //4
-    Serial.print(SCALE_1000(FlightData.BMP_temp)); Serial.print(","); //5
-    Serial.print(SCALE_1000(FlightData.BMP_pressure)); Serial.print(",");//6
-    Serial.print(SCALE_1000(FlightData.BMP_altitude)); Serial.print(",");//7
+//     Serial.print(FlightData.BMP_time); Serial.print(","); //4
+//     Serial.print(SCALE_1000(FlightData.BMP_temp)); Serial.print(","); //5
+//     Serial.print(SCALE_1000(FlightData.BMP_pressure)); Serial.print(",");//6
+//     Serial.print(SCALE_1000(FlightData.BMP_altitude)); Serial.print(",");//7
 
-    Serial.print(FlightData.ADXL_time); Serial.print(",");//8
-    Serial.print(SCALE_1000(FlightData.ADXL_accel[0])); Serial.print(",");//9 x
-    Serial.print(SCALE_1000(FlightData.ADXL_accel[1])); Serial.print(",");//10 y
-    Serial.print(SCALE_1000(FlightData.ADXL_accel[2])); Serial.print(",");//11 z
+//     Serial.print(FlightData.ADXL_time); Serial.print(",");//8
+//     Serial.print(SCALE_1000(FlightData.ADXL_accel[0])); Serial.print(",");//9 x
+//     Serial.print(SCALE_1000(FlightData.ADXL_accel[1])); Serial.print(",");//10 y
+//     Serial.print(SCALE_1000(FlightData.ADXL_accel[2])); Serial.print(",");//11 z
 
-    Serial.print(FlightData.LSM_time); Serial.print(","); //12
-    Serial.print(SCALE_1000(FlightData.LSM_accel[0])); Serial.print(",");//13 x
-    Serial.print(SCALE_1000(FlightData.LSM_accel[1])); Serial.print(",");//14 y
-    Serial.print(SCALE_1000(FlightData.LSM_accel[2])); Serial.print(",");//15 z
-    Serial.print(SCALE_1000(FlightData.LSM_gyro[0])); Serial.print(",");//16 x
-    Serial.print(SCALE_1000(FlightData.LSM_gyro[1])); Serial.print(",");//17 y
-    Serial.print(SCALE_1000(FlightData.LSM_gyro[2])); Serial.print(",");//18 z
+//     Serial.print(FlightData.LSM_time); Serial.print(","); //12
+//     Serial.print(SCALE_1000(FlightData.LSM_accel[0])); Serial.print(",");//13 x
+//     Serial.print(SCALE_1000(FlightData.LSM_accel[1])); Serial.print(",");//14 y
+//     Serial.print(SCALE_1000(FlightData.LSM_accel[2])); Serial.print(",");//15 z
+//     Serial.print(SCALE_1000(FlightData.LSM_gyro[0])); Serial.print(",");//16 x
+//     Serial.print(SCALE_1000(FlightData.LSM_gyro[1])); Serial.print(",");//17 y
+//     Serial.print(SCALE_1000(FlightData.LSM_gyro[2])); Serial.print(",");//18 z
 
-    Serial.print(FlightData.BNO_time); Serial.print(",");//19
-    Serial.print(SCALE_1000(FlightData.BNO_quat[0])); Serial.print(",");//20 w
-    Serial.print(SCALE_1000(FlightData.BNO_quat[1])); Serial.print(",");//21 x
-    Serial.print(SCALE_1000(FlightData.BNO_quat[2])); Serial.print(",");//22 y
-    Serial.print(SCALE_1000(FlightData.BNO_quat[3])); Serial.print(",");//23 z
+//     Serial.print(FlightData.BNO_time); Serial.print(",");//19
+//     Serial.print(SCALE_1000(FlightData.BNO_quat[0])); Serial.print(",");//20 w
+//     Serial.print(SCALE_1000(FlightData.BNO_quat[1])); Serial.print(",");//21 x
+//     Serial.print(SCALE_1000(FlightData.BNO_quat[2])); Serial.print(",");//22 y
+//     Serial.print(SCALE_1000(FlightData.BNO_quat[3])); Serial.print(",");//23 z
 
-    Serial.print(SCALE_1000(FlightData.BNO_accel[0])); Serial.print(",");//24 x
-    Serial.print(SCALE_1000(FlightData.BNO_accel[1])); Serial.print(",");//25 y
-    Serial.print(SCALE_1000(FlightData.BNO_accel[2])); Serial.print(",");//26 z
+//     Serial.print(SCALE_1000(FlightData.BNO_accel[0])); Serial.print(",");//24 x
+//     Serial.print(SCALE_1000(FlightData.BNO_accel[1])); Serial.print(",");//25 y
+//     Serial.print(SCALE_1000(FlightData.BNO_accel[2])); Serial.print(",");//26 z
 
-    Serial.print(SCALE_1000(FlightData.BNO_magnet[0])); Serial.print(",");//27 x
-    Serial.print(SCALE_1000(FlightData.BNO_magnet[1])); Serial.print(",");//28 y
-    Serial.print(SCALE_1000(FlightData.BNO_magnet[2])); Serial.print(",");//29 z
+//     Serial.print(SCALE_1000(FlightData.BNO_magnet[0])); Serial.print(",");//27 x
+//     Serial.print(SCALE_1000(FlightData.BNO_magnet[1])); Serial.print(",");//28 y
+//     Serial.print(SCALE_1000(FlightData.BNO_magnet[2])); Serial.print(",");//29 z
 
-    Serial.print(SCALE_1000(FlightData.BNO_euler[0])); Serial.print(",");//30 x
-    Serial.print(SCALE_1000(FlightData.BNO_euler[1])); Serial.print(",");//31 y
-    Serial.print(SCALE_1000(FlightData.BNO_euler[2])); Serial.print(",");//32 z
+//     Serial.print(SCALE_1000(FlightData.BNO_euler[0])); Serial.print(",");//30 x
+//     Serial.print(SCALE_1000(FlightData.BNO_euler[1])); Serial.print(",");//31 y
+//     Serial.print(SCALE_1000(FlightData.BNO_euler[2])); Serial.print(",");//32 z
 
-    Serial.print(FlightData.GPS_time); Serial.print(",");//33 
-    Serial.print(FlightData.GPS_sat); Serial.print(",");//34
-    Serial.print(SCALE_1000(FlightData.GPS_lat)); Serial.print(",");//35
-    Serial.print(FlightData.GPS_lat_dir); Serial.print(",");//36
-    Serial.print(SCALE_1000(FlightData.GPS_lon)); Serial.print(",");//37
-    Serial.print(FlightData.GPS_lon_dir); Serial.print(",");//38
-    Serial.print(SCALE_1000(FlightData.GPS_alt)); Serial.print(",");//39
+//     Serial.print(FlightData.GPS_time); Serial.print(",");//33 
+//     Serial.print(FlightData.GPS_sat); Serial.print(",");//34
+//     Serial.print(SCALE_1000(FlightData.GPS_lat)); Serial.print(",");//35
+//     Serial.print(FlightData.GPS_lat_dir); Serial.print(",");//36
+//     Serial.print(SCALE_1000(FlightData.GPS_lon)); Serial.print(",");//37
+//     Serial.print(FlightData.GPS_lon_dir); Serial.print(",");//38
+//     Serial.print(SCALE_1000(FlightData.GPS_alt)); Serial.print(",");//39
 
-    Serial.print(FlightData.flightState); Serial.print(",");//40
-    Serial.print(FlightData.apogeeEstimate); Serial.print(",");//41
-    Serial.print((uint8_t)(checksum >> 8)); Serial.print(","); //42
-    Serial.print((uint8_t)(checksum));//43
+//     Serial.print(FlightData.flightState); Serial.print(",");//40
+//     Serial.print(FlightData.apogeeEstimate); Serial.print(",");//41
+//     Serial.print((uint8_t)(checksum >> 8)); Serial.print(","); //42
+//     Serial.print((uint8_t)(checksum));//43
 
-    Serial.println();
-}
+//     Serial.println();
+// }
 
 
 
@@ -378,10 +395,10 @@ void loop() {
         failureType |= (1 << 4);
         return;
     }
-    /// Calculate crc16 of the data packet being sent over the serial line
-    uint16_t crc16 = pack_packet(serial_packet, rxCounter, failureType, packet_time, rxData);
+    /// Calculate length of the data packet being sent over the serial line
+    size_t packet_len = pack_packet(serial_packet, rxCounter, failureType, packet_time, rxData);
     /// Print the data packet to serial line so the app can pick them up
-    printToSerial(rxData, rxCounter, failureType, packet_time, crc16);
+    printHexPacket(serial_packet, packet_len);
     /// Increment counter
     rxCounter++;
     /// Small delay so packet is not repeated (can be optimized more)

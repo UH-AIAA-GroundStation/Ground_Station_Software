@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import pyqtSignal, QObject
 import pyqtgraph as pg
+import struct
 
 # File import
 from ground_app_ui import Ui_MainWindow
@@ -30,7 +31,6 @@ data_packet = []
 
 # Constants
 START_BYTE = 0x100000000 # Packet start byte
-END_BYTE = 0x7F800000 # Packet end byte
 TEXAS_STATE_ZONES = (13,14,15) # Available zones in Texas
 
 
@@ -69,6 +69,9 @@ class entryWindow(QMainWindow):
 
     # Parse selected COM port, baud rate, and launch zone
     def parse_entry_arguments(self):
+        global port
+        global baud
+        global launch_zone
         # Get the selected port and baud rate from the entry dialog
         port = str(self.ui.PortList.currentText())
         baud = int(self.ui.BaudList.currentText())
@@ -129,6 +132,8 @@ class MainWindow(QMainWindow):
         self.print_to_LCD.print_lcd_signal.connect(self.main_thread_connection)
         # Reset graph button
         self.ui.ResetGraphButton.clicked.connect(self.reset_graph)
+        # Reset serial connection
+        self.ui.ResetSerialButton.clicked.connect(self.reset_serial_connection)
 
 
     # Setting up data graph
@@ -187,8 +192,6 @@ class MainWindow(QMainWindow):
 
     # Read from serial port and strip data packet
     def io_thread_function(self):
-        global port
-        global baud 
         global connection_successful
         global data_packet
         connection_sem.acquire()
@@ -204,24 +207,28 @@ class MainWindow(QMainWindow):
         # If serial connection is good, read data, start timer, and print to LCD 
         while connection_successful:
             try:
-                # Read a data line
-                data_packet = self.serial_connection.readline().strip()
-                data_packet = data_packet.split(",")
-                if len(data_packet) > 0 and data_packet[0] == START_BYTE:
-
+                # Read a data line and unpack header, data, crc16
+                line = self.serial_connection.readline().decode(errors="ignore").strip()
+                data_packet = bytes.fromhex(line)
+                payload = data_packet[:-2]
+                rx_crc = (data_packet[-2] << 8) | data_packet[-1]
+                # Read from byte 0 of the payload to get header byte at position 0 in a return tuple (<Q = little-endian,uint64_t)
+                header_payload = struct.unpack_from("<Q", payload, 0)[0] 
+                
+                if len(payload) > 0 and header_payload == START_BYTE:
                     # Checksum recalculation
-                    input_data_packet = "".join(data_packet)
                     result = subprocess.run(
-                        ["pycrc", "--model", "crc-16-ccitt", "--check-string", input_data_packet],
+                        ["pycrc", "--model", "crc-16-ccitt", "--check-hexstring", payload.hex()],
                         capture_output=True,
                         text=True,
                         check=True
                     )
                     # Get the raw checksum values without flag, \n, error, ...
-                    checksum_packet = result.stdout.strip()
+                    checksum_string = result.stdout.strip() # "0x..."
+                    calc_checksum = int(checksum_string, 16)
 
                     # Verify checksum from the data packet 
-                    if (checksum_packet >> 8) == data_packet[42] and checksum_packet == data_packet[43]:
+                    if calc_checksum == rx_crc:
                         data_avail_time = time.perf_counter()
                         self.print_to_LCD.print_lcd_signal.emit(data_packet,data_avail_time)
                     else: # Bad checksum (something wrong with the data packet)
@@ -302,8 +309,8 @@ class MainWindow(QMainWindow):
         self.time_plot.append(data_packet_time - self.main_window_time)
 
         # Altitude and Temperature plot
-        self.altitude_data.append(data_packet[7])
-        self.temp_data.append(data_packet[5])
+        self.altitude_data.append(float(data_packet[7]))
+        self.temp_data.append(float(data_packet[5]))
         altitude_curve = self.altitude_plot.plot(self.time_plot, self.altitude_data, name="Altitude Plot", pen="r")
         temp_curve = self.altitude_plot.plot(self.time_plot, self.temp_data, name="Temperature Plot", pen="g")
         altitude_curve.setClipToView(True)
@@ -313,9 +320,9 @@ class MainWindow(QMainWindow):
         temp_curve.setDownsampling(ds=5, auto=True, method='peak')
 
         # ADXL X/Y/Z plot (red, green, cyan)
-        self.adxl_acc_x_data.append(data_packet[9])
-        self.adxl_acc_y_data.append(data_packet[10])
-        self.adxl_acc_z_data.append(data_packet[11])
+        self.adxl_acc_x_data.append(float(data_packet[9]))
+        self.adxl_acc_y_data.append(float(data_packet[10]))
+        self.adxl_acc_z_data.append(float(data_packet[11]))
         adxl_x_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_x_data, name="ADXL Accel X", pen="r")
         adxl_y_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_y_data, name="ADXL Accel Y", pen="g")
         adxl_z_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_z_data, name="ADXL Accel Z", pen="c")
@@ -328,12 +335,12 @@ class MainWindow(QMainWindow):
         adxl_z_curve.setDownsampling(ds=5, auto=True, method='peak')
 
         # LSM X/Y/Z plot (red, green, cyan)
-        self.lsm_acc_x_data.append(data_packet[13])
-        self.lsm_acc_y_data.append(data_packet[14])
-        self.lsm_acc_z_data.append(data_packet[15])
-        lsm_x_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_x_data, name="ADXL Accel X", pen="r")
-        lsm_y_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_y_data, name="ADXL Accel Y", pen="g")
-        lsm_z_curve = self.adxl_graph.plot(self.time_plot, self.adxl_acc_z_data, name="ADXL Accel Z", pen="c")
+        self.lsm_acc_x_data.append(float(data_packet[13]))
+        self.lsm_acc_y_data.append(float(data_packet[14]))
+        self.lsm_acc_z_data.append(float(data_packet[15]))
+        lsm_x_curve = self.lsm_graph.plot(self.time_plot, self.lsm_acc_x_data, name="ADXL Accel X", pen="r")
+        lsm_y_curve = self.lsm_graph.plot(self.time_plot, self.lsm_acc_y_data, name="ADXL Accel Y", pen="g")
+        lsm_z_curve = self.lsm_graph.plot(self.time_plot, self.lsm_acc_z_data, name="ADXL Accel Z", pen="c")
         lsm_x_curve.setClipToView(True)
         lsm_y_curve.setClipToView(True)
         lsm_z_curve.setClipToView(True)
@@ -342,10 +349,10 @@ class MainWindow(QMainWindow):
         lsm_y_curve.setDownsampling(ds=5, auto=True, method='peak')
         lsm_z_curve.setDownsampling(ds=5, auto=True, method='peak')
 
-        # Graph GPS
+        # Graph GPS (long = x, lat = y)
         # x, y = utm.from_latlon(input_lat, input_lon)
         # Return (Easting, Northing, Zone Number, Zone Letter)
-        gps_2d = utm.from_latlon(data_packet[35], data_packet[37], force_zone_number=launch_zone)
+        gps_2d = utm.from_latlon(float(data_packet[35]), float(data_packet[37]), force_zone_number=launch_zone)
         self.longitude_data.append(gps_2d[0])
         self.latitude_data.append(gps_2d[1])
         gps_curve = self.gps_graph.plot(self.longitude_data, self.latitude_data, name="GPS", symbol='o')
@@ -370,6 +377,22 @@ class MainWindow(QMainWindow):
         self.lsm_acc_z_data.clear()
         self.longitude_data.clear()
         self.latitude_data.clear()
+
+
+    # Reset serial connection
+    def reset_serial_connection(self):
+        global connection_successful
+        # Disconnect 
+        self.serial_connection.close()
+        # Reconnect
+        connection_sem.acquire()
+        try:
+            self.serial_connection = serial.Serial(port, baud, timeout=0.1)
+            connection_successful = True
+        except serial.SerialException as e:
+            connection_successful = False
+            connection_sem.release()
+        connection_sem.release()
 
             
 
