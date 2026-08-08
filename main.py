@@ -93,10 +93,11 @@ class entryWindow(QMainWindow):
 
     # Attempt to open the serial connection for one time
     # If successful, open the main window and close the entry window
-    # If unsuccessful, show an error message
+    # If unsuccessful, show an error message and return to entry window
     def io_thread_onetime(self):
         global connection_successful
         global serial_success
+        # Acquire serial semaphore
         connection_sem.acquire()
         try:
             self.serial_connection = serial.Serial(port, baud, timeout=0.1)
@@ -112,7 +113,8 @@ class entryWindow(QMainWindow):
             connection_successful = False
             serial_success = False
             QtWidgets.QMessageBox.critical(self, "Error", f"Error: {e}")
-
+            return
+        # Release serial semaphore upon successful connection
         connection_sem.release()
         # Open main window upon successfull connection
         if serial_success:
@@ -132,7 +134,9 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
         self.setWindowTitle("Ground Station Application")
         self.setWindowIcon(QIcon('cropped-aiaaweblogo.png'))
+        # Flag to toggle pause graphing
         self.graph_paused = False
+        # Setup graphing
         self.load_graphing()
         # Start I/O thread and get data
         threading.Thread(target=self.io_thread_function, daemon=True).start()
@@ -355,8 +359,9 @@ class MainWindow(QMainWindow):
                         if len(payload) != EXPECTED_PAYLOAD_SIZE:
                             continue
                         data_packet = self.unpack_packet(payload)
-
+                        # Record packet time
                         data_avail_time = time.perf_counter()
+                        # Print to LCD and graph data
                         self.print_to_LCD.print_lcd_signal.emit(data_packet,data_avail_time)
                     else: # Bad checksum, skip packet
                         continue
@@ -514,7 +519,7 @@ class MainWindow(QMainWindow):
         # Disconnect 
         connection_successful = False
         self.serial_connection.close()
-        # Reconnect
+        # Acquire serial semaphore and reconnect
         connection_sem.acquire()
         try:
             self.serial_connection = serial.Serial(port, baud, timeout=0.1)
@@ -531,7 +536,9 @@ class MainWindow(QMainWindow):
                 "Failure",
                 f"Error: {e}"
             )
+            # Failure to reconnect, release semaphore
             connection_sem.release()
+        # If successful, release semaphore
         connection_sem.release()
 
 
