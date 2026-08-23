@@ -16,8 +16,8 @@ import pyqtgraph as pg
 import struct
 
 # File import
-from dependencies_modules.ground_app_ui import Ui_MainWindow
-from dependencies_modules.entry_ui import Ui_GroundAppEntry
+from dependencies_modules.ground_app_ui_pi import Ui_MainWindow
+from dependencies_modules.entry_ui_pi import Ui_GroundAppEntry
 
 # Helper globals
 port = None  # Default port value
@@ -138,11 +138,16 @@ class MainWindow(QMainWindow):
         self.graph_paused = False
         # Setup graphing
         self.load_graphing()
-        # Start I/O thread and get data
-        threading.Thread(target=self.io_thread_function, daemon=True).start()
         # Print data to LCDs and graph from worker thread to main thread
         self.print_to_LCD = signal_to_LCD()
         self.print_to_LCD.print_lcd_signal.connect(self.main_thread_connection)
+        # Start I/O thread and get data
+        self.io_thread = threading.Thread(
+            target=self.io_thread_function,
+            daemon=True
+        )
+        self.io_thread.start()
+        
         # Reset graph button
         self.ui.ResetGraphButton.clicked.connect(self.reset_graph)
         # Reset serial connection
@@ -323,7 +328,8 @@ class MainWindow(QMainWindow):
         while connection_successful:
             try:
                 # Read a data line and unpack header, data, crc16
-                line = self.serial_connection.readline().decode(errors="ignore").strip()
+                if self.serial_connection is not None and self.serial_connection.is_open:
+                    line = self.serial_connection.readline().decode(errors="ignore").strip()
                 try:
                     packet = bytes.fromhex(line)
                     if len(packet) != EXPECTED_PACKET_SIZE:
@@ -518,16 +524,25 @@ class MainWindow(QMainWindow):
         global connection_successful
         # Disconnect 
         connection_successful = False
-        self.serial_connection.close()
-        # Acquire serial semaphore and reconnect
-        connection_sem.acquire()
+        # Wait for readline() to finish naturally
+        if hasattr(self, "io_thread") and self.io_thread.is_alive():
+            self.io_thread.join(timeout=1)
+        # Close old connection
+        if self.serial_connection is not None:
+            if self.serial_connection.is_open:
+                self.serial_connection.close()
         try:
-            self.serial_connection = serial.Serial(port, baud, timeout=0.1)
-            connection_successful = True
+            # Start a new reader thread
+            self.io_thread = threading.Thread(
+                target=self.io_thread_function,
+                daemon=True
+            )
+            self.io_thread.start()
+            
             QtWidgets.QMessageBox.information(
-                self,
-                "Success",
-                "Serial reconnection successful!"
+            self,
+            "Success",
+            "Serial reconnection successful!"
             )
         except serial.SerialException as e:
             connection_successful = False
@@ -536,10 +551,6 @@ class MainWindow(QMainWindow):
                 "Failure",
                 f"Error: {e}"
             )
-            # Failure to reconnect, release semaphore
-            connection_sem.release()
-        # If successful, release semaphore
-        connection_sem.release()
 
 
     # Toggle pause/resume graphing

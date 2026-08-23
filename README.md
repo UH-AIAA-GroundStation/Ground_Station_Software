@@ -33,8 +33,11 @@ Ground station software (Application Software and Control Software)
 
 
 # Build .exe 
-```
+```bash
+# Windows
 pyinstaller --onefile --add-data ".\cropped-aiaaweblogo.png;." .\main.py
+# Linux
+pyinstaller --onefile --add-data "cropped-aiaaweblogo.png:." main.py
 ```
 
 
