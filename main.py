@@ -9,11 +9,12 @@ import utm
 from serial.tools import list_ports
 import subprocess
 from PyQt5 import QtWidgets  
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPinchGesture
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtCore import pyqtSignal, QObject, Qt, QEvent
 import pyqtgraph as pg
 import struct
+import math
 
 # File import
 from dependencies_modules.ground_app_ui_pi import Ui_MainWindow
@@ -40,6 +41,71 @@ TEXAS_STATE_ZONES = (13,14,15) # Available zones in Texas
 # Main thread signaling to print data to LCD
 class signal_to_LCD(QObject):
     print_lcd_signal = pyqtSignal(list, float)
+
+
+# Touchscreen gesture for graph (zoom in/out, pan)
+class TouchPlotWidget(pg.PlotWidget):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Accept touch events
+        self.viewport().setAttribute(Qt.WA_AcceptTouchEvents, True)
+        # Letting the filter handle the events first before default process
+        self.viewport().installEventFilter(self)
+        # Store previous distance between two touch points for pinch gesture
+        self.last_distance = None
+
+    # When something happens inside the graph
+    def eventFilter(self, obj, event):
+        # If there are two touch points
+        if event.type() == QEvent.TouchBegin:
+            # Get touch points 
+            points = event.touchPoints()
+            # If there are two touch points, store the distance between them
+            if len(points) == 2:
+                # Calculate the distance between the two touch points and store it
+                self.last_distance = self.distance(points)
+
+            return False
+
+        # While there are fingers on the screen:
+        if event.type() == QEvent.TouchUpdate:
+            # Get the new finger positions
+            points = event.touchPoints()
+            # If there are two fingers on the screen
+            if len(points) == 2:
+                # Calculate the distance between them and scale the graph accordingly
+                current_distance = self.distance(points)
+                if self.last_distance is not None:
+                    scale = current_distance / self.last_distance
+                    # Zoom in/out
+                    self.getViewBox().scaleBy(
+                        x=1 / scale,
+                        y=1 / scale
+                    )
+
+                # New distance becomes the last distance for the next update
+                self.last_distance = current_distance
+
+                return True
+
+        # When fingers are lifted off the screen, reset the last distance
+        if event.type() == QEvent.TouchEnd:
+            # Reset the previous distance
+            self.last_distance = None
+
+        # If no touch events, return to default process
+        return super().eventFilter(obj, event)
+
+    # Calculate the distance between two touch points
+    def distance(self, points):
+
+        p1 = points[0].pos()
+        p2 = points[1].pos()
+
+        dx = p2.x() - p1.x()
+        dy = p2.y() - p1.y()
+
+        return math.sqrt(dx * dx + dy * dy)
 
 
 
@@ -163,7 +229,7 @@ class MainWindow(QMainWindow):
         self.time_plot = []
 
         # Altitude and temp graph and data setup
-        self.altitude_plot = pg.PlotWidget()
+        self.altitude_plot = TouchPlotWidget()
         self.ui.AltitudeTempGraphLayout.addWidget(self.altitude_plot)
         self.altitude_plot.addLegend()
         self.altitude_plot.addLegend().setLabelTextColor('#FFFFFF')
@@ -172,7 +238,7 @@ class MainWindow(QMainWindow):
         self.temp_data = []
 
         # ADXL graph and data setup
-        self.adxl_graph = pg.PlotWidget()
+        self.adxl_graph = TouchPlotWidget()
         self.ui.ADXLAccGraphXYZLayout.addWidget(self.adxl_graph)
         self.adxl_graph.addLegend()
         self.adxl_graph.addLegend().setLabelTextColor('#FFFFFF')
@@ -182,7 +248,7 @@ class MainWindow(QMainWindow):
         self.adxl_acc_z_data = []
 
         # LSM graph and data setup
-        self.lsm_graph = pg.PlotWidget()
+        self.lsm_graph = TouchPlotWidget()
         self.ui.LSMAccGraph_XYZLayout.addWidget(self.lsm_graph)
         self.lsm_graph.addLegend()
         self.lsm_graph.addLegend().setLabelTextColor('#FFFFFF')
@@ -192,7 +258,7 @@ class MainWindow(QMainWindow):
         self.lsm_acc_z_data = []
 
         # GPS graph and data setup
-        self.gps_graph = pg.PlotWidget()
+        self.gps_graph = TouchPlotWidget()
         self.ui.GPSGraphLayout.addWidget(self.gps_graph)
         self.gps_graph.showGrid(x=True, y=True)
         
